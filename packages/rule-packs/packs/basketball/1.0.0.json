@@ -1,0 +1,35 @@
+{
+  "$schema": "../../schema/rule-pack.schema.json",
+  "id": "basketball",
+  "version": "1.0.0",
+  "name": "Basketball (5-on-5)",
+  "scoringModel": "timed_points",
+  "teamSport": true,
+  "registration": {
+    "fields": [
+      {
+        "key": "position",
+        "label": "Position",
+        "type": "select",
+        "required": true,
+        "options": [
+          { "value": "PG", "label": "Point guard" },
+          { "value": "SG", "label": "Shooting guard" },
+          { "value": "SF", "label": "Small forward" },
+          { "value": "PF", "label": "Power forward" },
+          { "value": "C", "label": "Center" }
+        ]
+      },
+      {
+        "key": "heightCm",
+        "label": "Height (cm)",
+        "type": "number",
+        "min": 100,
+        "max": 250,
+        "integer": true
+      }
+    ]
+  },
+  "lineup": { "starters": 5, "maxSubs": 7, "squadMin": 8, "squadMax": 12 },
+  "format": { "periods": 4, "periodMinutes": 10, "overtimeMinutes": 5, "shotClockSeconds": 24 }
+}

@@ -1,4 +1,5 @@
-// Models land in Milestone 2 (full Gate 1 schema).
+// Gate 1 data model. Tables are snake_case plural; fields camelCase.
+// Sport-specific data lives only in JSON validated against rule packs (ADR-001).
 
 generator client {
   provider = "prisma-client-js"
@@ -6,6 +7,297 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  // Neon: use the direct (non-pooler) connection string so migrations work.
   url      = env("DATABASE_URL")
+}
+
+enum Role {
+  super_admin
+  organizer
+  auctioneer
+  team_owner
+  player
+  scorer
+}
+
+enum ScoringModel {
+  ball
+  timed_goal
+  raid
+  timed_points
+  sets
+  result_only
+}
+
+enum EntryType {
+  team
+  individual
+}
+
+enum Gender {
+  male
+  female
+  other
+}
+
+enum GenderRule {
+  open
+  men
+  women
+  mixed
+}
+
+enum RegistrationStatus {
+  pending
+  approved
+  rejected
+}
+
+enum SportProfileStatus {
+  active
+  pending_review
+}
+
+enum DocumentType {
+  masked_aadhaar
+  pan
+  college_id
+  company_id
+}
+
+model User {
+  id        String    @id @default(uuid()) @db.Uuid
+  /// Accounts are linked by Google subject, never by email.
+  googleSub String    @unique
+  email     String
+  name      String
+  avatarUrl String?
+  createdAt DateTime  @default(now())
+  deletedAt DateTime?
+
+  refreshTokens RefreshToken[]
+  consents      Consent[]
+  memberships   Membership[]
+  player        Player?
+
+  @@map("users")
+}
+
+model RefreshToken {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @db.Uuid
+  /// sha256 of the opaque token; the token itself is never stored.
+  tokenHash String    @unique
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("refresh_tokens")
+}
+
+model Consent {
+  id            String   @id @default(uuid()) @db.Uuid
+  userId        String   @db.Uuid
+  policyVersion String
+  /// e.g. "data_use", "photos_on_streams"
+  scope         String
+  consentedAt   DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("consents")
+}
+
+model Membership {
+  id           String   @id @default(uuid()) @db.Uuid
+  userId       String   @db.Uuid
+  /// null = global role (super_admin).
+  tournamentId String?  @db.Uuid
+  role         Role
+  createdAt    DateTime @default(now())
+
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tournament Tournament? @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, tournamentId, role])
+  @@index([tournamentId, role])
+  @@map("memberships")
+}
+
+model Sport {
+  id           String       @id @default(uuid()) @db.Uuid
+  /// Equals the rule pack id, e.g. "cricket".
+  code         String       @unique
+  name         String
+  scoringModel ScoringModel
+  isTeamSport  Boolean
+
+  rulePacks   RulePack[]
+  tournaments Tournament[]
+  profiles    PlayerSportProfile[]
+
+  @@map("sports")
+}
+
+model RulePack {
+  id          String   @id @default(uuid()) @db.Uuid
+  sportId     String   @db.Uuid
+  version     String
+  /// Immutable once published; a change is a new version.
+  contentJson Json
+  publishedAt DateTime @default(now())
+
+  sport       Sport        @relation(fields: [sportId], references: [id])
+  tournaments Tournament[]
+
+  @@unique([sportId, version])
+  @@map("rule_packs")
+}
+
+model Event {
+  id        String   @id @default(uuid()) @db.Uuid
+  orgName   String
+  name      String
+  startDate DateTime @db.Date
+  endDate   DateTime @db.Date
+  createdAt DateTime @default(now())
+
+  tournaments Tournament[]
+
+  @@map("events")
+}
+
+model Tournament {
+  id                   String     @id @default(uuid()) @db.Uuid
+  eventId              String     @db.Uuid
+  sportId              String     @db.Uuid
+  /// Pinned at creation; later pack versions never change a running tournament.
+  rulePackId           String     @db.Uuid
+  name                 String
+  /// e.g. "Men's open", "Women's doubles"
+  category             String
+  entryType            EntryType
+  registrationOpen     Boolean    @default(false)
+  registrationDeadline DateTime?
+  ageMin               Int?
+  ageMax               Int?
+  genderRule           GenderRule @default(open)
+  settingsJson         Json       @default("{}")
+  createdAt            DateTime   @default(now())
+
+  event         Event          @relation(fields: [eventId], references: [id])
+  sport         Sport          @relation(fields: [sportId], references: [id])
+  rulePack      RulePack       @relation(fields: [rulePackId], references: [id])
+  registrations Registration[]
+  memberships   Membership[]
+
+  @@index([eventId])
+  @@map("tournaments")
+}
+
+model Player {
+  id                   String    @id @default(uuid()) @db.Uuid
+  userId               String    @unique @db.Uuid
+  displayName          String
+  dob                  DateTime? @db.Date
+  gender               Gender?
+  /// Typed by the player, not verified.
+  phone                String?
+  city                 String?
+  state                String?
+  organization         String?
+  bio                  String?
+  socialLinksJson      Json?
+  emergencyContactJson Json?
+  medicalNotes         String?
+  /// Required if under 18.
+  guardianJson         Json?
+  jerseySize           String?
+  jerseyNumber         Int?
+  photoKey             String?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+  deletedAt            DateTime?
+
+  user          User                 @relation(fields: [userId], references: [id])
+  sportProfiles PlayerSportProfile[]
+  documents     PlayerDocument[]
+  registrations Registration[]
+
+  @@map("players")
+}
+
+model PlayerSportProfile {
+  id              String             @id @default(uuid()) @db.Uuid
+  playerId        String             @db.Uuid
+  sportId         String             @db.Uuid
+  /// Pack version the attributes were validated against.
+  rulePackVersion String
+  attributesJson  Json
+  category        String?
+  /// Whole rupees.
+  basePrice       Int?
+  status          SportProfileStatus @default(active)
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+
+  player Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  sport  Sport  @relation(fields: [sportId], references: [id])
+
+  @@unique([playerId, sportId])
+  @@map("player_sport_profiles")
+}
+
+model PlayerDocument {
+  id           String       @id @default(uuid()) @db.Uuid
+  playerId     String       @db.Uuid
+  /// Aadhaar only ever masked; full numbers are never stored.
+  type         DocumentType
+  fileKey      String
+  verifiedById String?      @db.Uuid
+  verifiedAt   DateTime?
+  createdAt    DateTime     @default(now())
+
+  player Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@index([playerId])
+  @@map("player_documents")
+}
+
+model Registration {
+  id           String             @id @default(uuid()) @db.Uuid
+  playerId     String             @db.Uuid
+  tournamentId String             @db.Uuid
+  status       RegistrationStatus @default(pending)
+  reason       String?
+  reviewedById String?            @db.Uuid
+  reviewedAt   DateTime?
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+
+  player     Player     @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  tournament Tournament @relation(fields: [tournamentId], references: [id])
+
+  @@unique([playerId, tournamentId])
+  @@index([tournamentId, status])
+  @@map("registrations")
+}
+
+model AuditLog {
+  id         String   @id @default(uuid()) @db.Uuid
+  /// null for system actions (seed, jobs).
+  actorId    String?  @db.Uuid
+  action     String
+  entity     String
+  entityId   String
+  beforeJson Json?
+  afterJson  Json?
+  at         DateTime @default(now())
+
+  @@index([entity, entityId])
+  @@index([actorId])
+  @@map("audit_logs")
 }

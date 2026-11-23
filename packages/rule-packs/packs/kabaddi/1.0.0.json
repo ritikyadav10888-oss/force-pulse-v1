@@ -1,0 +1,38 @@
+{
+  "$schema": "../../schema/rule-pack.schema.json",
+  "id": "kabaddi",
+  "version": "1.0.0",
+  "name": "Kabaddi",
+  "scoringModel": "raid",
+  "teamSport": true,
+  "registration": {
+    "fields": [
+      {
+        "key": "role",
+        "label": "Playing role",
+        "type": "select",
+        "required": true,
+        "options": [
+          { "value": "raider", "label": "Raider" },
+          { "value": "defender", "label": "Defender" },
+          { "value": "all_rounder", "label": "All-rounder" }
+        ]
+      },
+      {
+        "key": "defenderPosition",
+        "label": "Defender position",
+        "type": "select",
+        "showIf": { "field": "role", "in": ["defender", "all_rounder"] },
+        "options": [
+          { "value": "left_corner", "label": "Left corner" },
+          { "value": "right_corner", "label": "Right corner" },
+          { "value": "left_cover", "label": "Left cover" },
+          { "value": "right_cover", "label": "Right cover" },
+          { "value": "in", "label": "In (centre)" }
+        ]
+      }
+    ]
+  },
+  "lineup": { "starters": 7, "maxSubs": 5, "squadMin": 10, "squadMax": 12 },
+  "format": { "halves": 2, "halfMinutes": 20, "raidSeconds": 30, "playersOnMat": 7 }
+}

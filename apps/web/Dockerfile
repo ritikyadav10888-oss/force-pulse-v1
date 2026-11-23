@@ -3,8 +3,9 @@ FROM node:22-slim AS build
 RUN corepack enable
 WORKDIR /app
 COPY . .
-# NEXT_PUBLIC_* values are inlined into the browser bundle at build time.
-ARG NEXT_PUBLIC_API_URL
+# Build-time values: API_URL is baked into the /api proxy rewrite; NEXT_PUBLIC_* into the browser bundle.
+ARG API_URL
+ARG NEXT_PUBLIC_GOOGLE_CLIENT_ID
 ARG NEXT_PUBLIC_SENTRY_DSN
 RUN pnpm install --frozen-lockfile && pnpm --filter "@force-pulse/web..." build
 

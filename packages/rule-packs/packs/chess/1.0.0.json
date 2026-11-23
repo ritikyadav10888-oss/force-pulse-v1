@@ -1,0 +1,48 @@
+{
+  "$schema": "../../schema/rule-pack.schema.json",
+  "id": "chess",
+  "version": "1.0.0",
+  "name": "Chess",
+  "scoringModel": "result_only",
+  "teamSport": false,
+  "registration": {
+    "fields": [
+      {
+        "key": "ratingBody",
+        "label": "Rating body",
+        "type": "select",
+        "required": true,
+        "options": [
+          { "value": "fide", "label": "FIDE" },
+          { "value": "aicf", "label": "AICF" },
+          { "value": "unrated", "label": "Unrated" }
+        ]
+      },
+      {
+        "key": "rating",
+        "label": "Rating",
+        "type": "number",
+        "min": 0,
+        "max": 3500,
+        "integer": true,
+        "showIf": { "field": "ratingBody", "in": ["fide", "aicf"] }
+      },
+      {
+        "key": "fideId",
+        "label": "FIDE ID",
+        "type": "text",
+        "maxLength": 20,
+        "showIf": { "field": "ratingBody", "in": ["fide"] }
+      },
+      {
+        "key": "aicfId",
+        "label": "AICF ID",
+        "type": "text",
+        "maxLength": 20,
+        "showIf": { "field": "ratingBody", "in": ["aicf"] }
+      }
+    ]
+  },
+  "lineup": { "starters": 1, "maxSubs": 0, "squadMin": 1, "squadMax": 1 },
+  "format": { "draws": true, "timeControl": "90+30" }
+}

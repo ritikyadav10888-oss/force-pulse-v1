@@ -6,6 +6,13 @@ export default defineConfig({
   plugins: [swc.vite()],
   test: {
     include: ['test/**/*.spec.ts'],
-    env: { LOG_LEVEL: 'silent' },
+    // Integration tests share one database.
+    fileParallelism: false,
+    env: {
+      LOG_LEVEL: 'silent',
+      JWT_SECRET: 'test-secret-test-secret-test-secret-0000',
+      SUPER_ADMIN_EMAILS: 'admin@example.com',
+      GOOGLE_CLIENT_ID: 'test-client-id',
+    },
   },
 });
