@@ -1,5 +1,6 @@
 import {
   applyDecorators,
+  BadRequestException,
   type CanActivate,
   type ExecutionContext,
   ForbiddenException,
@@ -22,6 +23,8 @@ interface RoleRule {
   from: TournamentFrom;
 }
 const ROLE_RULE = 'roleRule';
+const isUUID = (s: string) =>
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);
 
 /**
  * Requires one of `roles` in the tournament the route acts on (`:id` is a tournament or a
@@ -47,6 +50,8 @@ export class TournamentRolesGuard implements CanActivate {
     const rule = this.reflector.get<RoleRule>(ROLE_RULE, ctx.getHandler());
     const req = ctx.switchToHttp().getRequest<Request & { user: AuthUser }>();
     const id = req.params.id as string;
+    // Guards run before pipes, so validate here; a malformed id would otherwise crash the query.
+    if (!isUUID(id)) throw new BadRequestException('Invalid id');
 
     let tournamentId: string | undefined = id;
     if (rule.from === 'registration') {
