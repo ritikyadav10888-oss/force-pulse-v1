@@ -1,0 +1,11 @@
+// Models land in Milestone 2 (full Gate 1 schema).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  // Neon: use the direct (non-pooler) connection string so migrations work.
+  url      = env("DATABASE_URL")
+}

@@ -1,0 +1,80 @@
+name: Deploy staging (Cloud Run)
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-staging
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    # Only after a green CI run on main, and only once GCP is configured (repo variables set).
+    if: >-
+      vars.GCP_PROJECT_ID != '' &&
+      (github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      REGION: ${{ vars.GCP_REGION }}
+      AR: ${{ vars.GCP_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/force-pulse
+      SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+      RUNTIME_SA: ${{ vars.GCP_RUNTIME_SA }}
+      SQL: ${{ vars.CLOUDSQL_CONNECTION }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.SHA }}
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOYER_SA }}
+      - uses: google-github-actions/setup-gcloud@v2
+      - run: gcloud config set run/region "$REGION" && gcloud auth configure-docker "$REGION-docker.pkg.dev" --quiet
+
+      - name: Build and push API image
+        run: |
+          docker build -f apps/api/Dockerfile -t "$AR/api:$SHA" .
+          docker push "$AR/api:$SHA"
+
+      - name: Run migrations (Cloud Run Job)
+        run: |
+          gcloud run jobs deploy fp-migrate --image "$AR/api:$SHA" \
+            --service-account "$RUNTIME_SA" --set-cloudsql-instances "$SQL" \
+            --set-secrets DATABASE_URL=database-url:latest \
+            --command node_modules/.bin/prisma --args migrate,deploy \
+            --max-retries 0 --task-timeout 300
+          gcloud run jobs execute fp-migrate --wait
+
+      - name: Deploy API
+        run: |
+          # Empty on the very first deploy (web not created yet); re-run once after.
+          WEB_URL=$(gcloud run services describe fp-web --format 'value(status.url)' 2>/dev/null || true)
+          gcloud run deploy fp-api --image "$AR/api:$SHA" \
+            --service-account "$RUNTIME_SA" --add-cloudsql-instances "$SQL" \
+            --set-secrets DATABASE_URL=database-url:latest \
+            --set-env-vars "NODE_ENV=production,SENTRY_ENVIRONMENT=staging,CORS_ORIGIN=$WEB_URL,SENTRY_DSN=${{ vars.API_SENTRY_DSN }}" \
+            --allow-unauthenticated --min-instances 0 --max-instances 2
+          echo "API_URL=$(gcloud run services describe fp-api --format 'value(status.url)')" >> "$GITHUB_ENV"
+
+      - name: Build, push and deploy web
+        run: |
+          docker build -f apps/web/Dockerfile -t "$AR/web:$SHA" \
+            --build-arg NEXT_PUBLIC_API_URL="$API_URL" \
+            --build-arg NEXT_PUBLIC_SENTRY_DSN="${{ vars.WEB_SENTRY_DSN }}" .
+          docker push "$AR/web:$SHA"
+          gcloud run deploy fp-web --image "$AR/web:$SHA" \
+            --service-account "$RUNTIME_SA" \
+            --allow-unauthenticated --min-instances 0 --max-instances 2
+          echo "WEB_URL=$(gcloud run services describe fp-web --format 'value(status.url)')" >> "$GITHUB_ENV"
+
+      - name: Smoke test
+        run: |
+          curl -fsS "$API_URL/health"
+          curl -fsS "$WEB_URL/health"
