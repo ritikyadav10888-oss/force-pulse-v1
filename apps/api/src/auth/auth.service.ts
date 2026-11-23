@@ -29,18 +29,14 @@ export class AuthService {
     });
     if (user.deletedAt) throw new UnauthorizedException('Account deleted');
 
-    // Bootstrap only: the first admins come from config, matched on a Google-verified email.
+    // Bootstrap only: platform super admins come from config, matched on a Google-verified email.
+    // The flag grants platform powers (later: rule packs, abuse) and no tournament powers.
     const admins = (process.env.SUPER_ADMIN_EMAILS ?? '')
       .toLowerCase()
       .split(',')
       .map((s) => s.trim());
-    if (id.emailVerified && admins.includes(id.email.toLowerCase())) {
-      const has = await this.prisma.membership.findFirst({
-        where: { userId: user.id, tournamentId: null, role: 'super_admin' },
-      });
-      if (!has) {
-        await this.prisma.membership.create({ data: { userId: user.id, role: 'super_admin' } });
-      }
+    if (id.emailVerified && admins.includes(id.email.toLowerCase()) && !user.isSuperAdmin) {
+      await this.prisma.user.update({ where: { id: user.id }, data: { isSuperAdmin: true } });
     }
     return { userId: user.id, ...(await this.issue(user.id)) };
   }
@@ -81,6 +77,11 @@ export class AuthService {
       where: { userId, revokedAt: null },
       data: { revokedAt: new Date() },
     });
+  }
+
+  /** Issues a session for an existing user. Only the test-login route uses this directly. */
+  issueFor(userId: string) {
+    return this.issue(userId);
   }
 
   private async issue(userId: string): Promise<Tokens> {

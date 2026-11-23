@@ -22,7 +22,7 @@ cp apps/api/.env.example apps/api/.env
 cp apps/web/.env.example apps/web/.env.local
 pnpm db:up                                  # Postgres 16 on localhost:5432
 pnpm --filter @force-pulse/api db:migrate   # apply migrations
-pnpm --filter @force-pulse/api db:seed      # sports, rule packs, demo event
+pnpm --filter @force-pulse/api db:seed      # sports and rule packs
 pnpm dev                                    # web :3000, api :4000
 ```
 
@@ -45,19 +45,20 @@ Never commit real values. `.env` / `.env.local` are git-ignored.
 
 ### API (`apps/api/.env`; on Cloud Run set by the deploy workflow)
 
-| Variable             | Required | Description                                                                       |
-| -------------------- | -------- | --------------------------------------------------------------------------------- |
-| `DATABASE_URL`       | yes      | Postgres URL. Staging: Secret Manager `database-url` (Cloud SQL unix socket).     |
-| `PORT`               | no       | Default `4000`. Cloud Run sets it to 8080.                                        |
-| `CORS_ORIGIN`        | no       | Comma-separated allowed origins. Default `http://localhost:3000`.                 |
-| `LOG_LEVEL`          | no       | pino level (`info`, `debug`, `silent`…). Default `info`.                          |
-| `SENTRY_DSN`         | no       | Sentry DSN for the API project. Empty disables Sentry.                            |
-| `JWT_SECRET`         | yes      | 32+ random chars for signing access tokens. Staging: Secret Manager `jwt-secret`. |
-| `GOOGLE_CLIENT_ID`   | yes      | OAuth Web client id; ID tokens must be minted for it. Staging: repo variable.     |
-| `SUPER_ADMIN_EMAILS` | no       | Comma-separated Google-verified emails that get `super_admin` on sign-in.         |
-| `RATE_LIMIT`         | no       | Requests per minute per IP on any route. Default `300`.                           |
-| `AUTH_RATE_LIMIT`    | no       | Requests per minute per IP on `/auth/*`. Default `10`.                            |
-| `SENTRY_ENVIRONMENT` | no       | `development` / `staging` / `production`.                                         |
+| Variable             | Required | Description                                                                                     |
+| -------------------- | -------- | ----------------------------------------------------------------------------------------------- |
+| `DATABASE_URL`       | yes      | Postgres URL. Staging: Secret Manager `database-url` (Cloud SQL unix socket).                   |
+| `NODE_ENV`           | no       | `development` locally (enables `/auth/test-login`), `test` in tests, `production` on Cloud Run. |
+| `PORT`               | no       | Default `4000`. Cloud Run sets it to 8080.                                                      |
+| `CORS_ORIGIN`        | no       | Comma-separated allowed origins. Default `http://localhost:3000`.                               |
+| `LOG_LEVEL`          | no       | pino level (`info`, `debug`, `silent`…). Default `info`.                                        |
+| `SENTRY_DSN`         | no       | Sentry DSN for the API project. Empty disables Sentry.                                          |
+| `JWT_SECRET`         | yes      | 32+ random chars for signing access tokens. Staging: Secret Manager `jwt-secret`.               |
+| `GOOGLE_CLIENT_ID`   | yes      | OAuth Web client id; ID tokens must be minted for it. Staging: repo variable.                   |
+| `SUPER_ADMIN_EMAILS` | no       | Comma-separated Google-verified emails that get `super_admin` on sign-in.                       |
+| `RATE_LIMIT`         | no       | Requests per minute per IP on any route. Default `300`.                                         |
+| `AUTH_RATE_LIMIT`    | no       | Requests per minute per IP on `/auth/*`. Default `10`.                                          |
+| `SENTRY_ENVIRONMENT` | no       | `development` / `staging` / `production`.                                                       |
 
 ### Web (`apps/web/.env.local`; on Cloud Run baked in at image build)
 
@@ -107,3 +108,9 @@ Sport rules live in `packages/rule-packs/packs/<sport>/<version>.json`, validate
 
 - Published versions never change. To change a pack, copy it to a new version (patch = labels, minor = new optional fields, major = meaning changes), then run `pnpm --filter @force-pulse/rule-packs lock`. CI fails if a locked pack is edited.
 - Tournaments pin the pack version they were created with. The seed copies every pack into the `rule_packs` table on deploy.
+
+## Roles
+
+Any signed-in user can create an event and tournaments, and becomes **owner** of each tournament they create. The owner can add **co-organizers** (Milestone 6), who manage players and approvals but can't change modules, co-organizers or ownership. "Organizer" means owner or co-organizer. The permission map is `PERMISSIONS` in `packages/shared/src/api.ts`. A **super admin** (`SUPER_ADMIN_EMAILS`) runs the platform and has no tournament powers.
+
+Locally (and in tests), `POST /auth/test-login {"email": "..."}` signs in as any existing user without Google. It does not exist in production.

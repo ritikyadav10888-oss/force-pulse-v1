@@ -1,13 +1,28 @@
-import { Body, Controller, Get, Param, ParseUUIDPipe, Patch, Post, Query } from '@nestjs/common';
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Get,
+  Param,
+  ParseUUIDPipe,
+  Patch,
+  Post,
+  Query,
+} from '@nestjs/common';
 import { ApiBody, ApiCreatedResponse, ApiOkResponse, ApiQuery, ApiTags } from '@nestjs/swagger';
 import {
   listRegistrationsQuerySchema,
+  modulesSchema,
   REGISTRATION_STATUSES,
   reviewRegistrationSchema,
+  toggleRegistrationSchema,
+  type Modules,
   type RegistrationStatus,
 } from '@force-pulse/shared';
+import type { Prisma } from '@prisma/client';
 import { type AuthUser, CurrentUser, Public } from '../auth/auth.guard';
-import { TournamentRoles } from '../auth/roles.guard';
+import { TournamentPermission } from '../auth/roles.guard';
+import { audit } from '../common/audit';
 import { apiSchema, ZodPipe } from '../common/zod';
 import { PrismaService } from '../prisma/prisma.service';
 import { RegistrationsService } from './registrations.service';
@@ -35,6 +50,7 @@ export class TournamentsController {
         genderRule: true,
         ageMin: true,
         ageMax: true,
+        modulesJson: true,
         event: { select: { id: true, name: true, orgName: true, startDate: true, endDate: true } },
         sport: { select: { code: true, name: true } },
       },
@@ -49,7 +65,7 @@ export class TournamentsController {
   }
 
   @Get('tournaments/:id/registrations')
-  @TournamentRoles(['organizer'])
+  @TournamentPermission('registrations.view')
   @ApiQuery({ name: 'status', required: false, enum: REGISTRATION_STATUSES })
   @ApiOkResponse({ description: 'Approval queue' })
   queue(
@@ -60,7 +76,7 @@ export class TournamentsController {
   }
 
   @Patch('registrations/:id')
-  @TournamentRoles(['organizer'], 'registration')
+  @TournamentPermission('registrations.review', 'registration')
   @ApiBody({ schema: apiSchema(reviewRegistrationSchema) })
   @ApiOkResponse({ description: 'Approved or rejected (reason required to reject); audit-logged' })
   review(
@@ -70,5 +86,64 @@ export class TournamentsController {
     body: { status: 'approved' | 'rejected'; reason?: string },
   ) {
     return this.registrations.review(user.id, id, body);
+  }
+
+  @Patch('tournaments/:id/registration')
+  @TournamentPermission('registration.toggle')
+  @ApiBody({ schema: apiSchema(toggleRegistrationSchema) })
+  @ApiOkResponse({ description: 'Open or close self-registration (organizer)' })
+  async toggleRegistration(
+    @CurrentUser() user: AuthUser,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body(new ZodPipe(toggleRegistrationSchema)) body: { open: boolean },
+  ) {
+    const t = await this.prisma.tournament.findUniqueOrThrow({ where: { id } });
+    if (body.open && !(t.modulesJson as Modules).registration) {
+      throw new BadRequestException('Turn on the registration module first');
+    }
+    const updated = await this.prisma.tournament.update({
+      where: { id },
+      data: { registrationOpen: body.open },
+      select: { id: true, registrationOpen: true },
+    });
+    await audit(this.prisma, {
+      actorId: user.id,
+      action: body.open ? 'registration.opened' : 'registration.closed',
+      entity: 'Tournament',
+      entityId: id,
+    });
+    return updated;
+  }
+
+  @Patch('tournaments/:id/modules')
+  @TournamentPermission('modules.update')
+  @ApiBody({ schema: apiSchema(modulesSchema) })
+  @ApiOkResponse({ description: 'Change which modules the tournament uses (owner only)' })
+  async updateModules(
+    @CurrentUser() user: AuthUser,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body(new ZodPipe(modulesSchema)) modules: Modules,
+  ) {
+    return this.prisma.$transaction(async (tx) => {
+      const before = await tx.tournament.findUniqueOrThrow({ where: { id } });
+      const updated = await tx.tournament.update({
+        where: { id },
+        // Turning registration off also closes it.
+        data: {
+          modulesJson: modules as Prisma.InputJsonValue,
+          ...(modules.registration ? {} : { registrationOpen: false }),
+        },
+        select: { id: true, modulesJson: true, registrationOpen: true },
+      });
+      await audit(tx, {
+        actorId: user.id,
+        action: 'tournament.modules_updated',
+        entity: 'Tournament',
+        entityId: id,
+        before: before.modulesJson,
+        after: modules,
+      });
+      return updated;
+    });
   }
 }

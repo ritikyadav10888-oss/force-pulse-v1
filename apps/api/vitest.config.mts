@@ -1,3 +1,4 @@
+import { randomBytes } from 'node:crypto';
 import swc from 'unplugin-swc';
 import { defineConfig } from 'vitest/config';
 
@@ -10,7 +11,8 @@ export default defineConfig({
     fileParallelism: false,
     env: {
       LOG_LEVEL: 'silent',
-      JWT_SECRET: 'test-secret-test-secret-test-secret-0000',
+      // Fresh random secret per run: nothing secret-shaped is committed.
+      JWT_SECRET: randomBytes(32).toString('hex'),
       SUPER_ADMIN_EMAILS: 'admin@example.com',
       GOOGLE_CLIENT_ID: 'test-client-id',
       // High so the suites don't trip limits; security.spec lowers AUTH_RATE_LIMIT for its own app.

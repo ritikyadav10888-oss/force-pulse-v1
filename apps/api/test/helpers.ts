@@ -53,7 +53,48 @@ export async function signIn(
 
 export async function resetDb(prisma: PrismaClient) {
   await prisma.$executeRawUnsafe(
-    `TRUNCATE TABLE audit_logs, registrations, player_documents, player_sport_profiles, players,
+    `TRUNCATE TABLE audit_logs, invites, registrations, player_documents, player_sport_profiles, players,
      memberships, consents, refresh_tokens, users, tournaments, events, rule_packs, sports CASCADE`,
   );
+}
+
+const modulesOn = { registration: true, auction: false, scoring: false, fantasy: false };
+
+/** Creates an event + tournament as `owner` (who becomes its owner), optionally opening registration. */
+export async function createTournament(
+  app: INestApplication,
+  owner: { cookie: string },
+  sportCode: string,
+  { modules = modulesOn, open = true }: { modules?: typeof modulesOn; open?: boolean } = {},
+) {
+  const http = app.getHttpServer();
+  const event = await request(http)
+    .post('/events')
+    .set('Cookie', owner.cookie)
+    .send({
+      name: `${sportCode} fest`,
+      orgName: 'Test Org',
+      startDate: '2027-02-01',
+      endDate: '2027-02-05',
+    })
+    .expect(201);
+  const t = await request(http)
+    .post(`/events/${event.body.id}/tournaments`)
+    .set('Cookie', owner.cookie)
+    .send({
+      sportCode,
+      name: `${sportCode} cup`,
+      category: 'Open',
+      entryType: 'individual',
+      modules,
+    })
+    .expect(201);
+  if (open && modules.registration) {
+    await request(http)
+      .patch(`/tournaments/${t.body.id}/registration`)
+      .set('Cookie', owner.cookie)
+      .send({ open: true })
+      .expect(200);
+  }
+  return { eventId: event.body.id as string, id: t.body.id as string };
 }
