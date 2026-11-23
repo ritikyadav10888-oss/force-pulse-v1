@@ -72,8 +72,9 @@ jobs:
             --build-arg NEXT_PUBLIC_GOOGLE_CLIENT_ID="${{ vars.GOOGLE_CLIENT_ID }}" \
             --build-arg NEXT_PUBLIC_SENTRY_DSN="${{ vars.WEB_SENTRY_DSN }}" .
           docker push "$AR/web:$SHA"
+          # API_URL at runtime too: server-rendered pages (public player page) call the API directly.
           gcloud run deploy fp-web --image "$AR/web:$SHA" \
-            --service-account "$RUNTIME_SA" \
+            --service-account "$RUNTIME_SA" --set-env-vars "API_URL=$API_URL" \
             --allow-unauthenticated --min-instances 0 --max-instances 2
           echo "WEB_URL=$(gcloud run services describe fp-web --format 'value(status.url)')" >> "$GITHUB_ENV"
 
