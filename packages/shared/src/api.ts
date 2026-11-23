@@ -29,7 +29,79 @@ export const createPlayerSchema = z.object({
 });
 export type CreatePlayer = z.infer<typeof createPlayerSchema>;
 
-export const updatePlayerSchema = createPlayerSchema.partial();
+const phone = z
+  .string()
+  .trim()
+  .regex(/^\+?[0-9 ()-]{7,20}$/, 'Phone number');
+
+export const contactPersonSchema = z.object({
+  name: z.string().trim().min(2).max(80),
+  phone,
+  relation: z.string().trim().min(2).max(40),
+});
+export type ContactPerson = z.infer<typeof contactPersonSchema>;
+
+/** Step 1 + step 2 of the wizard; every field optional so each step saves on its own. */
+export const updatePlayerSchema = createPlayerSchema.partial().extend({
+  state: z.string().trim().min(2).max(80).optional(),
+  emergencyContact: contactPersonSchema.optional(),
+  medicalNotes: z.string().trim().max(1000).optional(),
+  /** Required for players under 18; null clears it. */
+  guardian: contactPersonSchema.nullable().optional(),
+});
+export type UpdatePlayer = z.infer<typeof updatePlayerSchema>;
+
+/** Age in whole years on `on` (default today), from an ISO date or Date. */
+export function ageOn(dob: string | Date, on: Date = new Date()) {
+  const d = typeof dob === 'string' ? new Date(dob) : dob;
+  const age = on.getUTCFullYear() - d.getUTCFullYear();
+  const beforeBirthday =
+    on.getUTCMonth() < d.getUTCMonth() ||
+    (on.getUTCMonth() === d.getUTCMonth() && on.getUTCDate() < d.getUTCDate());
+  return beforeBirthday ? age - 1 : age;
+}
+export const isMinor = (dob: string | Date | null | undefined) => !!dob && ageOn(dob) < 18;
+
+/** Sport-profile body; the attributes are checked against the sport's current rule pack on the server. */
+export const sportProfileSchema = z.object({ attributes: z.record(z.string(), z.unknown()) });
+
+export const PHOTO_TYPES = ['image/jpeg', 'image/png'] as const;
+export const MAX_UPLOAD_BYTES = 5 * 1024 * 1024;
+export const photoUploadRequestSchema = z.object({
+  contentType: z.enum(PHOTO_TYPES),
+  size: z.number().int().positive().max(MAX_UPLOAD_BYTES, 'Max 5 MB'),
+});
+export const confirmUploadSchema = z.object({ key: z.string().min(1).max(300) });
+
+export interface UploadTicket {
+  key: string;
+  uploadUrl: string;
+  /** Send these headers with the PUT, or storage rejects the upload. */
+  headers: Record<string, string>;
+  expiresAt: string;
+}
+
+export interface SportProfileView {
+  sport: { code: string; name: string };
+  rulePackVersion: string;
+  attributes: Record<string, unknown>;
+  status: 'active' | 'pending_review';
+}
+
+export interface MyPlayerProfile {
+  id: string;
+  displayName: string;
+  dob: string | null;
+  gender: (typeof GENDERS)[number] | null;
+  city: string | null;
+  state: string | null;
+  phone: string | null;
+  emergencyContact: ContactPerson | null;
+  medicalNotes: string | null;
+  guardian: ContactPerson | null;
+  photoUrl: string | null;
+  sportProfiles: SportProfileView[];
+}
 
 export const reviewRegistrationSchema = z
   .object({

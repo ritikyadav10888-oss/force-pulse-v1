@@ -45,20 +45,21 @@ Never commit real values. `.env` / `.env.local` are git-ignored.
 
 ### API (`apps/api/.env`; on Cloud Run set by the deploy workflow)
 
-| Variable             | Required | Description                                                                                     |
-| -------------------- | -------- | ----------------------------------------------------------------------------------------------- |
-| `DATABASE_URL`       | yes      | Postgres URL. Staging: Secret Manager `database-url` (Cloud SQL unix socket).                   |
-| `NODE_ENV`           | no       | `development` locally (enables `/auth/test-login`), `test` in tests, `production` on Cloud Run. |
-| `PORT`               | no       | Default `4000`. Cloud Run sets it to 8080.                                                      |
-| `CORS_ORIGIN`        | no       | Comma-separated allowed origins. Default `http://localhost:3000`.                               |
-| `LOG_LEVEL`          | no       | pino level (`info`, `debug`, `silent`…). Default `info`.                                        |
-| `SENTRY_DSN`         | no       | Sentry DSN for the API project. Empty disables Sentry.                                          |
-| `JWT_SECRET`         | yes      | 32+ random chars for signing access tokens. Staging: Secret Manager `jwt-secret`.               |
-| `GOOGLE_CLIENT_ID`   | yes      | OAuth Web client id; ID tokens must be minted for it. Staging: repo variable.                   |
-| `SUPER_ADMIN_EMAILS` | no       | Comma-separated Google-verified emails that get `super_admin` on sign-in.                       |
-| `RATE_LIMIT`         | no       | Requests per minute per IP on any route. Default `300`.                                         |
-| `AUTH_RATE_LIMIT`    | no       | Requests per minute per IP on `/auth/*`. Default `10`.                                          |
-| `SENTRY_ENVIRONMENT` | no       | `development` / `staging` / `production`.                                                       |
+| Variable             | Required    | Description                                                                                                                                       |
+| -------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `DATABASE_URL`       | yes         | Postgres URL. Staging: Secret Manager `database-url` (Cloud SQL unix socket).                                                                     |
+| `NODE_ENV`           | no          | `development` locally (enables `/auth/test-login`), `test` in tests, `production` on Cloud Run.                                                   |
+| `PORT`               | no          | Default `4000`. Cloud Run sets it to 8080.                                                                                                        |
+| `CORS_ORIGIN`        | no          | Comma-separated allowed origins. Default `http://localhost:3000`.                                                                                 |
+| `LOG_LEVEL`          | no          | pino level (`info`, `debug`, `silent`…). Default `info`.                                                                                          |
+| `SENTRY_DSN`         | no          | Sentry DSN for the API project. Empty disables Sentry.                                                                                            |
+| `JWT_SECRET`         | yes         | 32+ random chars for signing access tokens. Staging: Secret Manager `jwt-secret`.                                                                 |
+| `GOOGLE_CLIENT_ID`   | yes         | OAuth Web client id; ID tokens must be minted for it. Staging: repo variable.                                                                     |
+| `SUPER_ADMIN_EMAILS` | no          | Comma-separated Google-verified emails that get `super_admin` on sign-in.                                                                         |
+| `RATE_LIMIT`         | no          | Requests per minute per IP on any route. Default `300`.                                                                                           |
+| `AUTH_RATE_LIMIT`    | no          | Requests per minute per IP on `/auth/*`. Default `10`.                                                                                            |
+| `FILES_BUCKET`       | for uploads | Cloud Storage bucket for photos and IDs. Without it the API runs but uploads fail. Locally: `gcloud auth application-default login` to sign URLs. |
+| `SENTRY_ENVIRONMENT` | no          | `development` / `staging` / `production`.                                                                                                         |
 
 ### Web (`apps/web/.env.local`; on Cloud Run baked in at image build)
 

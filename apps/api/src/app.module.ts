@@ -6,8 +6,10 @@ import { AuthModule } from './auth/auth.module';
 import { HealthController } from './health/health.controller';
 import { MeController } from './me/me.controller';
 import { PlayersController } from './players/players.controller';
+import { PlayersService } from './players/players.service';
 import { PrismaModule } from './prisma/prisma.module';
 import { SportsController } from './sports/sports.controller';
+import { StorageModule } from './storage/storage';
 import { EventsController } from './tournaments/events.controller';
 import { RegistrationsService } from './tournaments/registrations.service';
 import { TournamentsController } from './tournaments/tournaments.controller';
@@ -24,6 +26,7 @@ import { TournamentsController } from './tournaments/tournaments.controller';
       },
     }),
     PrismaModule,
+    StorageModule,
     AuthModule,
   ],
   controllers: [
@@ -36,6 +39,10 @@ import { TournamentsController } from './tournaments/tournaments.controller';
   ],
   // useClass (Sentry's documented setup): Nest property-injects HttpAdapterHost into the base filter.
   // The startup "no decorator metadata" warning for arg 0 is harmless; a factory breaks HttpException handling.
-  providers: [RegistrationsService, { provide: APP_FILTER, useClass: SentryGlobalFilter }],
+  providers: [
+    RegistrationsService,
+    PlayersService,
+    { provide: APP_FILTER, useClass: SentryGlobalFilter },
+  ],
 })
 export class AppModule {}

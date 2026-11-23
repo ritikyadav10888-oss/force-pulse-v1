@@ -4,18 +4,10 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import type { Modules, RegistrationStatus } from '@force-pulse/shared';
+import { ageOn, isMinor, type Modules, type RegistrationStatus } from '@force-pulse/shared';
 import { audit } from '../common/audit';
 import { isUniqueViolation } from '../common/prisma-errors';
 import { PrismaService } from '../prisma/prisma.service';
-
-const ageOn = (dob: Date, on: Date) => {
-  const age = on.getUTCFullYear() - dob.getUTCFullYear();
-  const beforeBirthday =
-    on.getUTCMonth() < dob.getUTCMonth() ||
-    (on.getUTCMonth() === dob.getUTCMonth() && on.getUTCDate() < dob.getUTCDate());
-  return beforeBirthday ? age - 1 : age;
-};
 
 @Injectable()
 export class RegistrationsService {
@@ -36,6 +28,9 @@ export class RegistrationsService {
       throw new BadRequestException('Registration is closed');
     }
     this.checkEligibility(t, player);
+    if (isMinor(player.dob) && !player.guardianJson) {
+      throw new BadRequestException('Players under 18 need a parent or guardian contact first');
+    }
 
     const existing = await this.prisma.registration.findUnique({
       where: { playerId_tournamentId: { playerId: player.id, tournamentId } },
@@ -120,7 +115,19 @@ export class RegistrationsService {
           reviewedAt: new Date(),
           selfApproved,
         },
+        include: { tournament: { select: { sportId: true } } },
       });
+      // Re-approval after a sport-profile edit clears its "pending review" state.
+      if (input.status === 'approved') {
+        await tx.playerSportProfile.updateMany({
+          where: {
+            playerId: before.playerId,
+            sportId: after.tournament.sportId,
+            status: 'pending_review',
+          },
+          data: { status: 'active' },
+        });
+      }
       const membership = {
         userId: before.player.userId,
         tournamentId: before.tournamentId,

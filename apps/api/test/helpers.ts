@@ -6,15 +6,42 @@ import { POLICY_VERSION } from '@force-pulse/shared';
 import { AppModule } from '../src/app.module';
 import { configureApp } from '../src/app.setup';
 import { AUTH_PROVIDER, type VerifiedIdentity } from '../src/auth/auth.provider';
+import { FileStorage, type StoredObject } from '../src/storage/storage';
 
 /** Test credential = the identity as JSON; the fake provider trusts it (Google is not called in tests). */
 export const credentialFor = (id: Partial<VerifiedIdentity> & { sub: string }) =>
   JSON.stringify({ email: `${id.sub}@example.com`, emailVerified: true, name: id.sub, ...id });
 
+/** In-memory stand-in for Cloud Storage; tests "upload" with put(). */
+export class MemoryStorage extends FileStorage {
+  readonly objects = new Map<string, StoredObject>();
+  put(key: string, obj: StoredObject) {
+    this.objects.set(key, obj);
+  }
+  async presignUpload(key: string, contentType: string, maxBytes: number) {
+    return {
+      url: `https://storage.test/upload/${key}`,
+      headers: { 'Content-Type': contentType, 'x-goog-content-length-range': `0,${maxBytes}` },
+    };
+  }
+  async presignDownload(key: string, ttlSeconds: number) {
+    return `https://storage.test/download/${key}?ttl=${ttlSeconds}`;
+  }
+  async stat(key: string) {
+    return this.objects.get(key) ?? null;
+  }
+  async delete(key: string) {
+    this.objects.delete(key);
+  }
+}
+export const storage = new MemoryStorage();
+
 export async function bootApp() {
   const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
     .overrideProvider(AUTH_PROVIDER)
     .useValue({ verify: async (c: string) => JSON.parse(c) as VerifiedIdentity })
+    .overrideProvider(FileStorage)
+    .useValue(storage)
     .compile();
   const app = moduleRef.createNestApplication();
   configureApp(app);

@@ -122,3 +122,13 @@ describe('permission map', () => {
     expect(can(['player', 'team_owner'], 'registrations.view')).toBe(false);
   });
 });
+
+describe('player helpers', () => {
+  it('computes age and minors on birthdays correctly', async () => {
+    const { ageOn, isMinor } = await import('./api.js');
+    expect(ageOn('2008-06-15', new Date('2026-06-14'))).toBe(17);
+    expect(ageOn('2008-06-15', new Date('2026-06-15'))).toBe(18);
+    expect(isMinor(null)).toBe(false);
+    expect(isMinor('2020-01-01')).toBe(true);
+  });
+});

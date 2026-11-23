@@ -5,6 +5,7 @@ import {
   POLICY_VERSION,
   type ConsentScope,
   type MeResponse,
+  type MyPlayerProfile,
   type Modules,
   type MyTournament,
   type Role,
@@ -12,12 +13,16 @@ import {
 import { type AuthUser, CurrentUser } from '../auth/auth.guard';
 import { consentedScopes, SkipConsent } from '../auth/consent';
 import { apiSchema, ZodPipe } from '../common/zod';
+import { PlayersService } from '../players/players.service';
 import { PrismaService } from '../prisma/prisma.service';
 
 @ApiTags('me')
 @Controller('me')
 export class MeController {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly players: PlayersService,
+  ) {}
 
   @Get()
   @SkipConsent()
@@ -66,6 +71,12 @@ export class MeController {
       });
     }
     return { policyVersion: POLICY_VERSION, scopes: [...have, ...add] };
+  }
+
+  @Get('player')
+  @ApiOkResponse({ description: 'Full own profile for the wizard (null until step 1 is saved)' })
+  player(@CurrentUser() { id }: AuthUser): Promise<MyPlayerProfile | null> {
+    return this.players.myProfile(id);
   }
 
   @Get('tournaments')

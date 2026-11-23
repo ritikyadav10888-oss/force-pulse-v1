@@ -62,6 +62,22 @@ gcloud iam workload-identity-pools providers create-oidc github --location globa
 retry gcloud iam service-accounts add-iam-policy-binding "$DEPLOYER_SA" --role roles/iam.workloadIdentityUser \
   --member "principalSet://iam.googleapis.com/projects/${PROJECT_NUMBER}/locations/global/workloadIdentityPools/github/attribute.repository/${GITHUB_REPO}" >/dev/null
 
+# Private bucket for photos and ID documents. Browsers upload/download with 5-minute signed URLs
+# that the runtime account signs with its own identity (signBlob), so no key file exists.
+FILES_BUCKET=${FILES_BUCKET:-${PROJECT_ID}-files}
+gcloud storage buckets create "gs://$FILES_BUCKET" --location "$REGION" \
+  --uniform-bucket-level-access --public-access-prevention || true
+retry gcloud storage buckets add-iam-policy-binding "gs://$FILES_BUCKET" \
+  --member "serviceAccount:$RUNTIME_SA" --role roles/storage.objectAdmin >/dev/null
+retry gcloud iam service-accounts add-iam-policy-binding "$RUNTIME_SA" \
+  --member "serviceAccount:$RUNTIME_SA" --role roles/iam.serviceAccountTokenCreator >/dev/null
+# CORS: browsers PUT straight to the bucket from the web app's origins.
+ORIGINS=$(gcloud run services describe fp-web --region "$REGION" --format json 2>/dev/null \
+  | jq -c '(.metadata.annotations["run.googleapis.com/urls"] // "[]" | fromjson) + ["http://localhost:3000"]' \
+  || echo '["http://localhost:3000"]')
+jq -n --argjson o "$ORIGINS" '[{origin: $o, method: ["PUT", "GET"], responseHeader: ["Content-Type", "x-goog-content-length-range"], maxAgeSeconds: 3600}]' > /tmp/fp-cors.json
+gcloud storage buckets update "gs://$FILES_BUCKET" --cors-file=/tmp/fp-cors.json
+
 cat <<EOF
 
 Done. Set these GitHub repo variables (Settings > Secrets and variables > Actions > Variables), or run:
@@ -72,4 +88,5 @@ gh variable set GCP_WIF_PROVIDER --body "projects/${PROJECT_NUMBER}/locations/gl
 gh variable set GCP_DEPLOYER_SA --body "$DEPLOYER_SA" -R $GITHUB_REPO
 gh variable set GCP_RUNTIME_SA --body "$RUNTIME_SA" -R $GITHUB_REPO
 gh variable set CLOUDSQL_CONNECTION --body "$SQL_CONN" -R $GITHUB_REPO
+gh variable set FILES_BUCKET --body "$FILES_BUCKET" -R $GITHUB_REPO
 EOF
