@@ -1,6 +1,23 @@
-import { Body, Controller, Get, HttpCode, Post, UnauthorizedException } from '@nestjs/common';
-import { ApiBody, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Header,
+  HttpCode,
+  Post,
+  Res,
+  UnauthorizedException,
+} from '@nestjs/common';
+import {
+  ApiBody,
+  ApiConflictResponse,
+  ApiNoContentResponse,
+  ApiOkResponse,
+  ApiTags,
+} from '@nestjs/swagger';
+import {
+  completeness,
   consentSchema,
   POLICY_VERSION,
   type ConsentScope,
@@ -10,11 +27,14 @@ import {
   type MyTournament,
   type Role,
 } from '@force-pulse/shared';
+import type { Response } from 'express';
 import { type AuthUser, CurrentUser } from '../auth/auth.guard';
+import { clearAuthCookies } from '../auth/cookies';
 import { consentedScopes, SkipConsent } from '../auth/consent';
 import { apiSchema, ZodPipe } from '../common/zod';
 import { PlayersService } from '../players/players.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { AccountService } from './account.service';
 
 @ApiTags('me')
 @Controller('me')
@@ -22,6 +42,7 @@ export class MeController {
   constructor(
     private readonly prisma: PrismaService,
     private readonly players: PlayersService,
+    private readonly account: AccountService,
   ) {}
 
   @Get()
@@ -32,7 +53,20 @@ export class MeController {
       where: { id },
       include: {
         memberships: { select: { role: true, tournamentId: true } },
-        player: { select: { id: true, displayName: true, deletedAt: true } },
+        player: {
+          select: {
+            id: true,
+            displayName: true,
+            deletedAt: true,
+            dob: true,
+            gender: true,
+            city: true,
+            photoKey: true,
+            emergencyContactJson: true,
+            guardianJson: true,
+            _count: { select: { sportProfiles: true, documents: true } },
+          },
+        },
       },
     });
     if (!user || user.deletedAt) throw new UnauthorizedException();
@@ -49,7 +83,35 @@ export class MeController {
       roles: user.memberships,
       player: player && { id: player.id, displayName: player.displayName },
       consent: { policyVersion: POLICY_VERSION, scopes, required: !scopes.includes('data_use') },
+      completeness:
+        player &&
+        completeness({
+          dob: player.dob,
+          gender: player.gender,
+          city: player.city,
+          hasPhoto: !!player.photoKey,
+          emergencyContact: player.emergencyContactJson,
+          guardian: player.guardianJson,
+          sportCount: player._count.sportProfiles,
+          documentCount: player._count.documents,
+        }),
     };
+  }
+
+  @Get('data')
+  @Header('Content-Disposition', 'attachment; filename="force-pulse-my-data.json"')
+  @ApiOkResponse({ description: 'Everything we store about you, as a JSON download' })
+  exportData(@CurrentUser() { id }: AuthUser) {
+    return this.account.export(id);
+  }
+
+  @Delete('data')
+  @HttpCode(204)
+  @ApiNoContentResponse({ description: 'Account deleted: personal data purged, sessions ended' })
+  @ApiConflictResponse({ description: 'You still own a tournament; transfer it first' })
+  async deleteAccount(@CurrentUser() { id }: AuthUser, @Res({ passthrough: true }) res: Response) {
+    await this.account.delete(id);
+    clearAuthCookies(res);
   }
 
   @Post('consent')

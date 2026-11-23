@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { api, post } from '@/lib/api';
 import { MyTournaments } from '@/components/my-tournaments';
+import { Progress } from '@/components/ui/progress';
+import { YourData } from '@/components/your-data';
 import { useMe } from '@/lib/use-me';
 
 interface MyRegistration {
@@ -69,9 +71,31 @@ export default function MePage() {
         </section>
       ) : (
         <section className="flex flex-col gap-3">
-          <Link href="/profile/setup" className="rounded border px-4 py-3 text-center">
-            Edit profile &amp; sports
-          </Link>
+          {me.completeness && (
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center justify-between text-sm">
+                <span>Profile complete</span>
+                <span className="font-semibold">{me.completeness.percent}%</span>
+              </div>
+              <Progress value={me.completeness.percent} aria-label="Profile completeness" />
+              {me.completeness.missing.length > 0 && (
+                <p className="text-sm text-muted-foreground">
+                  Missing: {me.completeness.missing.join(', ')}
+                </p>
+              )}
+            </div>
+          )}
+          <div className="flex gap-2">
+            <Link href="/profile/setup" className="flex-1 rounded border px-4 py-3 text-center">
+              Edit profile &amp; sports
+            </Link>
+            <Link
+              href={`/players/${me.player.id}`}
+              className="flex-1 rounded border px-4 py-3 text-center"
+            >
+              Public page
+            </Link>
+          </div>
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold">My registrations</h2>
             <Link href="/tournaments" className="text-blue-700 underline">
@@ -110,6 +134,7 @@ export default function MePage() {
           ))}
         </section>
       )}
+      <YourData />
     </main>
   );
 }

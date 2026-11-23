@@ -48,6 +48,13 @@ export const updatePlayerSchema = createPlayerSchema.partial().extend({
   medicalNotes: z.string().trim().max(1000).optional(),
   /** Required for players under 18; null clears it. */
   guardian: contactPersonSchema.nullable().optional(),
+  /** Public. */
+  bio: z.string().trim().max(500).optional(),
+  /** Public; e.g. Instagram, YouTube highlights. */
+  socialLinks: z
+    .array(z.url({ protocol: /^https?$/ }).max(300))
+    .max(5)
+    .optional(),
 });
 export type UpdatePlayer = z.infer<typeof updatePlayerSchema>;
 
@@ -100,7 +107,90 @@ export interface MyPlayerProfile {
   medicalNotes: string | null;
   guardian: ContactPerson | null;
   photoUrl: string | null;
+  bio: string | null;
+  socialLinks: string[];
   sportProfiles: SportProfileView[];
+  documents: DocumentView[];
+}
+
+// ---- ID documents -----------------------------------------------------------------------------
+
+/** Aadhaar only ever as a masked copy; full numbers are never stored. */
+export const DOCUMENT_TYPES = ['masked_aadhaar', 'pan', 'college_id', 'company_id'] as const;
+export type DocumentType = (typeof DOCUMENT_TYPES)[number];
+export const DOCUMENT_CONTENT_TYPES = ['image/jpeg', 'image/png', 'application/pdf'] as const;
+export const documentUploadRequestSchema = z.object({
+  type: z.enum(DOCUMENT_TYPES),
+  contentType: z.enum(DOCUMENT_CONTENT_TYPES),
+  size: z.number().int().positive().max(MAX_UPLOAD_BYTES, 'Max 5 MB'),
+});
+export const confirmDocumentSchema = z.object({
+  type: z.enum(DOCUMENT_TYPES),
+  key: z.string().min(1).max(300),
+});
+export interface DocumentView {
+  id: string;
+  type: DocumentType;
+  createdAt: string;
+  verifiedAt: string | null;
+}
+
+// ---- completeness, public page ----------------------------------------------------------------
+
+export interface CompletenessInput {
+  dob: string | Date | null;
+  gender: string | null;
+  city: string | null;
+  hasPhoto: boolean;
+  emergencyContact: unknown;
+  guardian: unknown;
+  sportCount: number;
+  documentCount: number;
+}
+export interface Completeness {
+  percent: number;
+  missing: string[];
+}
+
+/** Profile completeness; the guardian item only counts for under-18s. */
+export function completeness(p: CompletenessInput): Completeness {
+  const items: [string, boolean][] = [
+    ['About you', !!(p.dob && p.gender && p.city)],
+    ['Photo', p.hasPhoto],
+    ['Emergency contact', !!p.emergencyContact],
+    ...(isMinor(p.dob) ? [['Parent or guardian', !!p.guardian] as [string, boolean]] : []),
+    ['At least one sport', p.sportCount > 0],
+    ['ID document', p.documentCount > 0],
+  ];
+  const done = items.filter(([, ok]) => ok).length;
+  return {
+    percent: Math.round((done / items.length) * 100),
+    missing: items.filter(([, ok]) => !ok).map(([label]) => label),
+  };
+}
+
+/** Public pages show an age group, never the date of birth. */
+export function ageGroup(dob: string | Date | null): string | null {
+  if (!dob) return null;
+  const age = ageOn(dob);
+  if (age < 14) return 'Under 14';
+  if (age < 18) return '14–17';
+  if (age < 25) return '18–24';
+  if (age < 35) return '25–34';
+  if (age < 45) return '35–44';
+  return '45+';
+}
+
+export interface PublicPlayer {
+  id: string;
+  displayName: string;
+  photoUrl: string | null;
+  city: string | null;
+  state: string | null;
+  ageGroup: string | null;
+  bio: string | null;
+  socialLinks: string[];
+  sports: { code: string; name: string; badges: string[] }[];
 }
 
 export const reviewRegistrationSchema = z
@@ -142,6 +232,8 @@ export interface MeResponse {
   player: { id: string; displayName: string } | null;
   /** required = true until the user consents to data use under the current policy version. */
   consent: { policyVersion: string; scopes: ConsentScope[]; required: boolean };
+  /** null until the core profile exists. */
+  completeness: Completeness | null;
 }
 
 export const MODULES = ['registration', 'auction', 'scoring', 'fantasy'] as const;

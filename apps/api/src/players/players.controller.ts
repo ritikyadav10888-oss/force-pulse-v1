@@ -3,6 +3,7 @@ import {
   ConflictException,
   Controller,
   Delete,
+  Get,
   HttpCode,
   Param,
   ParseUUIDPipe,
@@ -14,20 +15,25 @@ import {
   ApiBody,
   ApiConflictResponse,
   ApiCreatedResponse,
+  ApiForbiddenResponse,
   ApiNoContentResponse,
+  ApiNotFoundResponse,
   ApiOkResponse,
   ApiTags,
 } from '@nestjs/swagger';
 import {
+  confirmDocumentSchema,
   confirmUploadSchema,
+  documentUploadRequestSchema,
   createPlayerSchema,
   photoUploadRequestSchema,
   sportProfileSchema,
   updatePlayerSchema,
   type CreatePlayer,
+  type DocumentType,
   type UpdatePlayer,
 } from '@force-pulse/shared';
-import { type AuthUser, CurrentUser } from '../auth/auth.guard';
+import { type AuthUser, CurrentUser, Public } from '../auth/auth.guard';
 import { isUniqueViolation } from '../common/prisma-errors';
 import { apiSchema, ZodPipe } from '../common/zod';
 import { PrismaService } from '../prisma/prisma.service';
@@ -133,5 +139,58 @@ export class PlayersController {
     @Param('sport') sport: string,
   ) {
     return this.players.removeSportProfile(user.id, id, sportCode(sport));
+  }
+
+  @Post(':id/documents')
+  @ApiBody({ schema: apiSchema(documentUploadRequestSchema) })
+  @ApiCreatedResponse({
+    description: 'Signed upload URL (5 minutes) for a JPEG, PNG or PDF under 5 MB',
+  })
+  documentTicket(
+    @CurrentUser() user: AuthUser,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body(new ZodPipe(documentUploadRequestSchema)) body: { contentType: string },
+  ) {
+    return this.players.documentUploadTicket(user.id, id, body.contentType);
+  }
+
+  @Put(':id/documents')
+  @ApiBody({ schema: apiSchema(confirmDocumentSchema) })
+  @ApiOkResponse({ description: 'Uploaded ID checked and saved (replaces the same type)' })
+  confirmDocument(
+    @CurrentUser() user: AuthUser,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body(new ZodPipe(confirmDocumentSchema)) body: { type: DocumentType; key: string },
+  ) {
+    return this.players.confirmDocument(user.id, id, body.type, body.key);
+  }
+
+  @Delete(':id/documents/:documentId')
+  @HttpCode(204)
+  @ApiNoContentResponse({ description: 'ID document and its file removed' })
+  removeDocument(
+    @CurrentUser() user: AuthUser,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('documentId', ParseUUIDPipe) documentId: string,
+  ) {
+    return this.players.removeDocument(user.id, id, documentId);
+  }
+
+  @Public()
+  @Get(':id')
+  @ApiOkResponse({ description: 'Public player page: public fields only, works signed out' })
+  @ApiNotFoundResponse()
+  publicProfile(@Param('id', ParseUUIDPipe) id: string) {
+    return this.players.publicProfile(id);
+  }
+
+  @Get(':id/private')
+  @ApiOkResponse({
+    description:
+      'Full profile incl. contact and ID (5-minute links). Every ID view is audit-logged.',
+  })
+  @ApiForbiddenResponse({ description: 'Only organizers of a tournament this player entered' })
+  privateProfile(@CurrentUser() user: AuthUser, @Param('id', ParseUUIDPipe) id: string) {
+    return this.players.privateProfile(user.id, id);
   }
 }

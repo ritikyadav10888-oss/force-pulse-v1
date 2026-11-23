@@ -4,6 +4,7 @@ import { SentryGlobalFilter, SentryModule } from '@sentry/nestjs/setup';
 import { LoggerModule } from 'nestjs-pino';
 import { AuthModule } from './auth/auth.module';
 import { HealthController } from './health/health.controller';
+import { AccountService } from './me/account.service';
 import { MeController } from './me/me.controller';
 import { PlayersController } from './players/players.controller';
 import { PlayersService } from './players/players.service';
@@ -42,6 +43,7 @@ import { TournamentsController } from './tournaments/tournaments.controller';
   providers: [
     RegistrationsService,
     PlayersService,
+    AccountService,
     { provide: APP_FILTER, useClass: SentryGlobalFilter },
   ],
 })

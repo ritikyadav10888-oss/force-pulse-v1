@@ -1,11 +1,16 @@
 'use client';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
+  completeness,
   contactPersonSchema,
+  DOCUMENT_CONTENT_TYPES,
+  DOCUMENT_TYPES,
+  MAX_UPLOAD_BYTES,
   createPlayerSchema,
   GENDERS,
   isMinor,
   type CreatePlayer,
+  type DocumentType,
   type MyPlayerProfile,
   type UploadTicket,
 } from '@force-pulse/shared';
@@ -25,7 +30,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { api, del, patch, post, put, uploadToSignedUrl } from '@/lib/api';
 import { useMe } from '@/lib/use-me';
 
-const STEPS = ['About you', 'Contact & safety', 'Your sports', 'Review'] as const;
+const STEPS = ['About you', 'Contact & safety', 'Your sports', 'Verify'] as const;
 const emptyToUndefined = (v: unknown) => (v === '' ? undefined : v);
 const selectClass =
   'h-9 w-full rounded-md border border-input bg-transparent px-3 text-base md:text-sm';
@@ -82,7 +87,7 @@ function Wizard() {
       {step === 3 && profile && (
         <YourSports profile={profile} reload={reload} onBack={() => go(2)} onDone={() => go(4)} />
       )}
-      {step === 4 && profile && <Review profile={profile} onBack={() => go(3)} />}
+      {step === 4 && profile && <Review profile={profile} reload={reload} onBack={() => go(3)} />}
     </main>
   );
 }
@@ -399,31 +404,40 @@ function YourSports({
 
 // ---- Step 4 ----------------------------------------------------------------------------------
 
-function Review({ profile, onBack }: { profile: MyPlayerProfile; onBack: () => void }) {
-  const items: [string, boolean][] = [
-    ['About you', !!(profile.dob && profile.gender && profile.city)],
-    ['Photo', !!profile.photoUrl],
-    ['Emergency contact', !!profile.emergencyContact],
-    ['Guardian (under 18)', !isMinor(profile.dob) || !!profile.guardian],
-    ['At least one sport', profile.sportProfiles.length > 0],
-  ];
+function Review({
+  profile,
+  reload,
+  onBack,
+}: {
+  profile: MyPlayerProfile;
+  reload: () => Promise<void>;
+  onBack: () => void;
+}) {
+  const score = completeness({
+    dob: profile.dob,
+    gender: profile.gender,
+    city: profile.city,
+    hasPhoto: !!profile.photoUrl,
+    emergencyContact: profile.emergencyContact,
+    guardian: profile.guardian,
+    sportCount: profile.sportProfiles.length,
+    documentCount: profile.documents.length,
+  });
   return (
-    <section className="flex flex-col gap-4">
-      <h1 className="text-2xl font-bold">Review</h1>
-      <ul className="flex flex-col gap-2">
-        {items.map(([label, ok]) => (
-          <li key={label} className="flex items-center justify-between rounded-md border p-3">
-            {label}
-            <span className={ok ? 'text-green-700' : 'text-amber-700'}>
-              {ok ? 'Done' : 'Missing'}
-            </span>
-          </li>
-        ))}
-        <li className="flex items-center justify-between rounded-md border border-dashed p-3 text-muted-foreground">
-          ID document
-          <span>Coming next</span>
-        </li>
-      </ul>
+    <section className="flex flex-col gap-5">
+      <h1 className="text-2xl font-bold">Verify &amp; review</h1>
+      <div className="flex flex-col gap-2">
+        <div className="flex items-center justify-between text-sm">
+          <span>Profile complete</span>
+          <span className="font-semibold">{score.percent}%</span>
+        </div>
+        <Progress value={score.percent} aria-label="Profile completeness" />
+        {score.missing.length > 0 && (
+          <p className="text-sm text-muted-foreground">Still missing: {score.missing.join(', ')}</p>
+        )}
+      </div>
+      <IdDocuments profile={profile} reload={reload} />
+      <PublicBio profile={profile} reload={reload} />
       <div className="flex gap-2">
         <Button type="button" variant="outline" onClick={onBack}>
           Back
@@ -435,6 +449,169 @@ function Review({ profile, onBack }: { profile: MyPlayerProfile; onBack: () => v
         </Link>
       </div>
     </section>
+  );
+}
+
+const DOC_LABEL: Record<DocumentType, string> = {
+  masked_aadhaar: 'Masked Aadhaar',
+  pan: 'PAN card',
+  college_id: 'College ID',
+  company_id: 'Company ID',
+};
+
+function IdDocuments({
+  profile,
+  reload,
+}: {
+  profile: MyPlayerProfile;
+  reload: () => Promise<void>;
+}) {
+  const [type, setType] = useState<DocumentType>('masked_aadhaar');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+
+  async function upload(file: File | undefined) {
+    setError('');
+    if (!file) return;
+    if (!(DOCUMENT_CONTENT_TYPES as readonly string[]).includes(file.type)) {
+      return setError('Use a JPEG, PNG or PDF');
+    }
+    if (file.size > MAX_UPLOAD_BYTES) return setError('The file must be under 5 MB');
+    setBusy(true);
+    try {
+      const ticket = await post<UploadTicket>(`/players/${profile.id}/documents`, {
+        type,
+        contentType: file.type,
+        size: file.size,
+      });
+      await uploadToSignedUrl(ticket, file);
+      await put(`/players/${profile.id}/documents`, { type, key: ticket.key });
+      await reload();
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <fieldset className="flex flex-col gap-3 rounded-md border p-3">
+      <legend className="px-1 text-sm font-semibold">ID document</legend>
+      <p className="text-sm text-muted-foreground">
+        Only organizers of tournaments you enter can open it, and every view is logged. For Aadhaar,
+        upload a <strong>masked</strong> copy (only the last 4 digits visible).
+      </p>
+      {profile.documents.map((d) => (
+        <div
+          key={d.id}
+          className="flex items-center justify-between rounded-md bg-muted p-2 text-sm"
+        >
+          <span>
+            {DOC_LABEL[d.type]} · {d.verifiedAt ? 'verified' : 'uploaded'}
+          </span>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() =>
+              del(`/players/${profile.id}/documents/${d.id}`)
+                .then(reload)
+                .catch((e: Error) => setError(e.message))
+            }
+          >
+            Remove
+          </Button>
+        </div>
+      ))}
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="docType">Document type</Label>
+        <select
+          id="docType"
+          className={selectClass}
+          value={type}
+          onChange={(e) => setType(e.target.value as DocumentType)}
+        >
+          {DOCUMENT_TYPES.map((t) => (
+            <option key={t} value={t}>
+              {DOC_LABEL[t]}
+            </option>
+          ))}
+        </select>
+        <label className="cursor-pointer text-sm font-medium text-primary underline">
+          {busy ? 'Uploading…' : 'Choose file (JPEG, PNG or PDF, max 5 MB)'}
+          <input
+            type="file"
+            accept="image/jpeg,image/png,application/pdf"
+            className="sr-only"
+            disabled={busy}
+            onChange={(e) => upload(e.target.files?.[0])}
+          />
+        </label>
+      </div>
+      <FormError message={error} />
+    </fieldset>
+  );
+}
+
+function PublicBio({ profile, reload }: { profile: MyPlayerProfile; reload: () => Promise<void> }) {
+  const [bio, setBio] = useState(profile.bio ?? '');
+  const [links, setLinks] = useState(profile.socialLinks.join('\n'));
+  const [status, setStatus] = useState('');
+
+  async function save() {
+    setStatus('');
+    try {
+      await patch(`/players/${profile.id}`, {
+        bio: bio.trim() || undefined,
+        socialLinks: links
+          .split('\n')
+          .map((l) => l.trim())
+          .filter(Boolean),
+      });
+      await reload();
+      setStatus('Saved');
+    } catch (e) {
+      setStatus((e as Error).message);
+    }
+  }
+
+  return (
+    <fieldset className="flex flex-col gap-3 rounded-md border p-3">
+      <legend className="px-1 text-sm font-semibold">Public profile (optional)</legend>
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="bio">Short bio</Label>
+        <Textarea
+          id="bio"
+          rows={3}
+          maxLength={500}
+          value={bio}
+          onChange={(e) => setBio(e.target.value)}
+        />
+      </div>
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="links">Links (one per line, up to 5)</Label>
+        <Textarea
+          id="links"
+          rows={2}
+          placeholder="https://instagram.com/you"
+          value={links}
+          onChange={(e) => setLinks(e.target.value)}
+        />
+      </div>
+      <div className="flex items-center gap-3">
+        <Button type="button" variant="outline" onClick={save}>
+          Save public profile
+        </Button>
+        <Link href={`/players/${profile.id}`} className="text-sm underline">
+          View public page
+        </Link>
+      </div>
+      {status && (
+        <p role="status" className="text-sm">
+          {status}
+        </p>
+      )}
+    </fieldset>
   );
 }
 
