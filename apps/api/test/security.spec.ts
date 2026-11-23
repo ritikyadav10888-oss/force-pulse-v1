@@ -1,3 +1,4 @@
+import { createHmac, randomBytes } from 'node:crypto';
 import type { INestApplication } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
 import request from 'supertest';
@@ -142,10 +143,12 @@ describe('sessions', () => {
   });
 
   it('rejects tokens signed with another secret', async () => {
-    const forged =
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDAifQ.' +
-      'c2lnbmF0dXJlLW5vdC12YWxpZA';
-    await request(http).get('/me').set('Authorization', `Bearer ${forged}`).expect(401);
+    // Built at runtime (no token literal in the repo, which secret scanners flag).
+    const b64 = (o: object) => Buffer.from(JSON.stringify(o)).toString('base64url');
+    const s = await signIn(app, { sub: 'forge-target' });
+    const body = `${b64({ alg: 'HS256', typ: 'JWT' })}.${b64({ sub: s.userId })}`;
+    const sig = createHmac('sha256', randomBytes(32)).update(body).digest('base64url');
+    await request(http).get('/me').set('Authorization', `Bearer ${body}.${sig}`).expect(401);
   });
 });
 
