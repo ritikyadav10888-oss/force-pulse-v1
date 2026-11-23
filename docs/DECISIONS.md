@@ -17,7 +17,7 @@ One line per decision, newest last.
 - 2026-11-23 — Single root ESLint flat config (typescript-eslint recommended + prettier) for all packages; Next ESLint plugin skipped.
 - 2026-11-23 — CI migration check: `migrate deploy` then `migrate diff --from-url --to-schema-datamodel --exit-code` (no shadow DB needed).
 - 2026-11-23 — shadcn/ui is initialised with its first component (Milestone 2), not empty in M1.
-- 2026-11-23 — Sentry v11: Next config wrapper imported from `@sentry/nextjs/config`; Nest `SentryGlobalFilter` built via factory because it ships without DI metadata.
+- 2026-11-23 — Sentry v11: Next config wrapper imported from `@sentry/nextjs/config`; Nest `SentryGlobalFilter` registered with `useClass` (a factory skips the property-injected HttpAdapterHost and turns 503s into 500s).
 - 2026-11-23 — Staging on GCP (asia-south1) instead of Vercel/Render/Neon: Cloud Run for web and API, Cloud SQL Postgres 16 (db-f1-micro, daily backups + PITR), Artifact Registry, Secret Manager. Founder's call; local dev stays Docker Postgres 16.
 - 2026-11-23 — GitHub → GCP auth via Workload Identity Federation restricted to this repo; no service-account JSON keys anywhere.
 - 2026-11-23 — Migrations run as Cloud Run Job `fp-migrate` (same API image, Cloud SQL socket), so CI needs no Cloud SQL proxy or DB credentials.

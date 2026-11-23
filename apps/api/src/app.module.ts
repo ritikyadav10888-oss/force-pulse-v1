@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { APP_FILTER, HttpAdapterHost } from '@nestjs/core';
+import { APP_FILTER } from '@nestjs/core';
 import { SentryGlobalFilter, SentryModule } from '@sentry/nestjs/setup';
 import { LoggerModule } from 'nestjs-pino';
 import { HealthController } from './health/health.controller';
@@ -19,13 +19,8 @@ import { PrismaModule } from './prisma/prisma.module';
     PrismaModule,
   ],
   controllers: [HealthController],
-  providers: [
-    {
-      // Sentry ships the filter without decorator metadata, so hand it the HTTP adapter explicitly.
-      provide: APP_FILTER,
-      useFactory: (host: HttpAdapterHost) => new SentryGlobalFilter(host.httpAdapter),
-      inject: [HttpAdapterHost],
-    },
-  ],
+  // useClass (Sentry's documented setup): Nest property-injects HttpAdapterHost into the base filter.
+  // The startup "no decorator metadata" warning for arg 0 is harmless; a factory breaks HttpException handling.
+  providers: [{ provide: APP_FILTER, useClass: SentryGlobalFilter }],
 })
 export class AppModule {}
