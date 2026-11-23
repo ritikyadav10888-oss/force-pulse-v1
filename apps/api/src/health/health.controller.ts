@@ -1,9 +1,11 @@
 import { Controller, Get, ServiceUnavailableException } from '@nestjs/common';
 import { ApiOkResponse, ApiServiceUnavailableResponse, ApiTags } from '@nestjs/swagger';
 import type { HealthResponse } from '@force-pulse/shared';
+import { Public } from '../auth/auth.guard';
 import { PrismaService } from '../prisma/prisma.service';
 
 @ApiTags('health')
+@Public()
 @Controller('health')
 export class HealthController {
   constructor(private readonly prisma: PrismaService) {}

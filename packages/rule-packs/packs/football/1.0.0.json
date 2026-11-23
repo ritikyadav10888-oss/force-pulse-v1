@@ -1,0 +1,121 @@
+{
+  "$schema": "../../schema/rule-pack.schema.json",
+  "id": "football",
+  "version": "1.0.0",
+  "name": "Football (11-a-side)",
+  "scoringModel": "timed_goal",
+  "teamSport": true,
+  "registration": {
+    "fields": [
+      {
+        "key": "primaryPosition",
+        "label": "Primary position",
+        "type": "select",
+        "required": true,
+        "options": [
+          { "value": "GK", "label": "Goalkeeper", "group": "GK" },
+          { "value": "CB", "label": "Centre-back", "group": "DEF" },
+          { "value": "LB", "label": "Left-back", "group": "DEF" },
+          { "value": "RB", "label": "Right-back", "group": "DEF" },
+          { "value": "DM", "label": "Defensive midfield", "group": "MID" },
+          { "value": "CM", "label": "Central midfield", "group": "MID" },
+          { "value": "AM", "label": "Attacking midfield", "group": "MID" },
+          { "value": "LM", "label": "Left midfield", "group": "MID" },
+          { "value": "RM", "label": "Right midfield", "group": "MID" },
+          { "value": "LW", "label": "Left wing", "group": "FWD" },
+          { "value": "RW", "label": "Right wing", "group": "FWD" },
+          { "value": "ST", "label": "Striker", "group": "FWD" }
+        ]
+      },
+      {
+        "key": "secondaryPosition",
+        "label": "Secondary position",
+        "type": "select",
+        "options": [
+          { "value": "GK", "label": "Goalkeeper", "group": "GK" },
+          { "value": "CB", "label": "Centre-back", "group": "DEF" },
+          { "value": "LB", "label": "Left-back", "group": "DEF" },
+          { "value": "RB", "label": "Right-back", "group": "DEF" },
+          { "value": "DM", "label": "Defensive midfield", "group": "MID" },
+          { "value": "CM", "label": "Central midfield", "group": "MID" },
+          { "value": "AM", "label": "Attacking midfield", "group": "MID" },
+          { "value": "LM", "label": "Left midfield", "group": "MID" },
+          { "value": "RM", "label": "Right midfield", "group": "MID" },
+          { "value": "LW", "label": "Left wing", "group": "FWD" },
+          { "value": "RW", "label": "Right wing", "group": "FWD" },
+          { "value": "ST", "label": "Striker", "group": "FWD" }
+        ]
+      },
+      {
+        "key": "preferredFoot",
+        "label": "Preferred foot",
+        "type": "select",
+        "options": [
+          { "value": "left", "label": "Left" },
+          { "value": "right", "label": "Right" },
+          { "value": "both", "label": "Both" }
+        ]
+      },
+      {
+        "key": "preferredJerseyNumber",
+        "label": "Preferred jersey number",
+        "type": "number",
+        "min": 1,
+        "max": 99,
+        "integer": true
+      }
+    ]
+  },
+  "lineup": {
+    "starters": 11,
+    "maxSubs": 5,
+    "squadMin": 14,
+    "squadMax": 22,
+    "positionMin": { "GK": 1 }
+  },
+  "format": {
+    "periods": 2,
+    "periodMinutes": 45,
+    "extraTime": true,
+    "extraTimeMinutes": 15,
+    "shootout": true
+  },
+  "events": [
+    "goal",
+    "own_goal",
+    "assist",
+    "yellow",
+    "red",
+    "sub",
+    "penalty_miss",
+    "penalty_save",
+    "period_end"
+  ],
+  "standings": {
+    "win": 3,
+    "draw": 1,
+    "loss": 0,
+    "tiebreakers": ["points", "goal_diff", "goals_for", "head_to_head", "lots"]
+  },
+  "fantasy": {
+    "squad": 11,
+    "credits": 100,
+    "points": {
+      "goal.FWD": 40,
+      "goal.MID": 50,
+      "goal.DEF": 60,
+      "goal.GK": 60,
+      "assist": 20,
+      "clean_sheet.GK": 20,
+      "clean_sheet.DEF": 20,
+      "penalty_save": 50,
+      "yellow": -4,
+      "red": -10,
+      "own_goal": -8
+    }
+  },
+  "overlay": {
+    "scorebug": ["teams", "score", "clock", "addedTime"],
+    "popups": ["goal", "yellow", "red", "sub"]
+  }
+}

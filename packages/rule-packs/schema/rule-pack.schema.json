@@ -1,0 +1,3211 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "oneOf": [
+    {
+      "type": "object",
+      "properties": {
+        "$schema": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*$"
+        },
+        "version": {
+          "type": "string",
+          "pattern": "^\\d+\\.\\d+\\.\\d+$"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "teamSport": {
+          "type": "boolean"
+        },
+        "registration": {
+          "type": "object",
+          "properties": {
+            "fields": {
+              "type": "array",
+              "items": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "key": {
+                        "type": "string",
+                        "pattern": "^[a-z][a-zA-Z0-9]*$"
+                      },
+                      "label": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "help": {
+                        "type": "string"
+                      },
+                      "required": {
+                        "type": "boolean"
+                      },
+                      "showIf": {
+                        "type": "object",
+                        "properties": {
+                          "field": {
+                            "type": "string",
+                            "pattern": "^[a-z][a-zA-Z0-9]*$"
+                          },
+                          "in": {
+                            "minItems": 1,
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "required": ["field", "in"],
+                        "additionalProperties": false
+                      },
+                      "type": {
+                        "type": "string",
+                        "const": "select"
+                      },
+                      "options": {
+                        "minItems": 1,
+                        "type": "array",
+                        "items": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "minLength": 1
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "value": {
+                                  "type": "string",
+                                  "minLength": 1
+                                },
+                                "label": {
+                                  "type": "string"
+                                },
+                                "group": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": ["value"],
+                              "additionalProperties": false
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    "required": ["key", "label", "type", "options"],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "key": {
+                        "type": "string",
+                        "pattern": "^[a-z][a-zA-Z0-9]*$"
+                      },
+                      "label": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "help": {
+                        "type": "string"
+                      },
+                      "required": {
+                        "type": "boolean"
+                      },
+                      "showIf": {
+                        "type": "object",
+                        "properties": {
+                          "field": {
+                            "type": "string",
+                            "pattern": "^[a-z][a-zA-Z0-9]*$"
+                          },
+                          "in": {
+                            "minItems": 1,
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "required": ["field", "in"],
+                        "additionalProperties": false
+                      },
+                      "type": {
+                        "type": "string",
+                        "const": "multiselect"
+                      },
+                      "options": {
+                        "minItems": 1,
+                        "type": "array",
+                        "items": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "minLength": 1
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "value": {
+                                  "type": "string",
+                                  "minLength": 1
+                                },
+                                "label": {
+                                  "type": "string"
+                                },
+                                "group": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": ["value"],
+                              "additionalProperties": false
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    "required": ["key", "label", "type", "options"],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "key": {
+                        "type": "string",
+                        "pattern": "^[a-z][a-zA-Z0-9]*$"
+                      },
+                      "label": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "help": {
+                        "type": "string"
+                      },
+                      "required": {
+                        "type": "boolean"
+                      },
+                      "showIf": {
+                        "type": "object",
+                        "properties": {
+                          "field": {
+                            "type": "string",
+                            "pattern": "^[a-z][a-zA-Z0-9]*$"
+                          },
+                          "in": {
+                            "minItems": 1,
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "required": ["field", "in"],
+                        "additionalProperties": false
+                      },
+                      "type": {
+                        "type": "string",
+                        "const": "text"
+                      },
+                      "maxLength": {
+                        "type": "integer",
+                        "exclusiveMinimum": 0,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": ["key", "label", "type"],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "key": {
+                        "type": "string",
+                        "pattern": "^[a-z][a-zA-Z0-9]*$"
+                      },
+                      "label": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "help": {
+                        "type": "string"
+                      },
+                      "required": {
+                        "type": "boolean"
+                      },
+                      "showIf": {
+                        "type": "object",
+                        "properties": {
+                          "field": {
+                            "type": "string",
+                            "pattern": "^[a-z][a-zA-Z0-9]*$"
+                          },
+                          "in": {
+                            "minItems": 1,
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "required": ["field", "in"],
+                        "additionalProperties": false
+                      },
+                      "type": {
+                        "type": "string",
+                        "const": "number"
+                      },
+                      "min": {
+                        "type": "number"
+                      },
+                      "max": {
+                        "type": "number"
+                      },
+                      "integer": {
+                        "type": "boolean"
+                      }
+                    },
+                    "required": ["key", "label", "type"],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "key": {
+                        "type": "string",
+                        "pattern": "^[a-z][a-zA-Z0-9]*$"
+                      },
+                      "label": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "help": {
+                        "type": "string"
+                      },
+                      "required": {
+                        "type": "boolean"
+                      },
+                      "showIf": {
+                        "type": "object",
+                        "properties": {
+                          "field": {
+                            "type": "string",
+                            "pattern": "^[a-z][a-zA-Z0-9]*$"
+                          },
+                          "in": {
+                            "minItems": 1,
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "required": ["field", "in"],
+                        "additionalProperties": false
+                      },
+                      "type": {
+                        "type": "string",
+                        "const": "url"
+                      }
+                    },
+                    "required": ["key", "label", "type"],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "key": {
+                        "type": "string",
+                        "pattern": "^[a-z][a-zA-Z0-9]*$"
+                      },
+                      "label": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "help": {
+                        "type": "string"
+                      },
+                      "required": {
+                        "type": "boolean"
+                      },
+                      "showIf": {
+                        "type": "object",
+                        "properties": {
+                          "field": {
+                            "type": "string",
+                            "pattern": "^[a-z][a-zA-Z0-9]*$"
+                          },
+                          "in": {
+                            "minItems": 1,
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "required": ["field", "in"],
+                        "additionalProperties": false
+                      },
+                      "type": {
+                        "type": "string",
+                        "const": "list"
+                      },
+                      "maxItems": {
+                        "type": "integer",
+                        "exclusiveMinimum": 0,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": ["key", "label", "type"],
+                    "additionalProperties": false
+                  }
+                ]
+              }
+            }
+          },
+          "required": ["fields"],
+          "additionalProperties": false
+        },
+        "lineup": {
+          "type": "object",
+          "properties": {
+            "starters": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            },
+            "maxSubs": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "squadMin": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            },
+            "squadMax": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            },
+            "positionMin": {
+              "type": "object",
+              "propertyNames": {
+                "type": "string"
+              },
+              "additionalProperties": {
+                "type": "integer",
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
+              }
+            }
+          },
+          "required": ["starters", "maxSubs", "squadMin", "squadMax"],
+          "additionalProperties": false
+        },
+        "events": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "standings": {
+          "type": "object",
+          "properties": {
+            "win": {
+              "type": "number"
+            },
+            "loss": {
+              "type": "number"
+            },
+            "draw": {
+              "type": "number"
+            },
+            "tie": {
+              "type": "number"
+            },
+            "noResult": {
+              "type": "number"
+            },
+            "tiebreakers": {
+              "minItems": 1,
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "required": ["win", "loss", "tiebreakers"],
+          "additionalProperties": false
+        },
+        "fantasy": {
+          "type": "object",
+          "properties": {
+            "squad": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            },
+            "credits": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "points": {
+              "type": "object",
+              "propertyNames": {
+                "type": "string"
+              },
+              "additionalProperties": {
+                "type": "number"
+              }
+            }
+          },
+          "required": ["squad", "credits", "points"],
+          "additionalProperties": false
+        },
+        "overlay": {
+          "type": "object",
+          "properties": {
+            "scorebug": {
+              "minItems": 1,
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "popups": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "required": ["scorebug", "popups"],
+          "additionalProperties": false
+        },
+        "scoringModel": {
+          "type": "string",
+          "const": "ball"
+        },
+        "format": {
+          "type": "object",
+          "properties": {
+            "innings": {
+              "anyOf": [
+                {
+                  "type": "number",
+                  "const": 1
+                },
+                {
+                  "type": "number",
+                  "const": 2
+                }
+              ]
+            },
+            "oversPerInnings": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            },
+            "ballsPerOver": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            },
+            "maxOversPerBowler": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            },
+            "powerplayOvers": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "superOver": {
+              "type": "boolean"
+            }
+          },
+          "required": ["innings", "oversPerInnings", "ballsPerOver", "superOver"],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "id",
+        "version",
+        "name",
+        "teamSport",
+        "registration",
+        "lineup",
+        "scoringModel",
+        "format"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "$schema": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*$"
+        },
+        "version": {
+          "type": "string",
+          "pattern": "^\\d+\\.\\d+\\.\\d+$"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "teamSport": {
+          "type": "boolean"
+        },
+        "registration": {
+          "type": "object",
+          "properties": {
+            "fields": {
+              "type": "array",
+              "items": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "key": {
+                        "type": "string",
+                        "pattern": "^[a-z][a-zA-Z0-9]*$"
+                      },
+                      "label": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "help": {
+                        "type": "string"
+                      },
+                      "required": {
+                        "type": "boolean"
+                      },
+                      "showIf": {
+                        "type": "object",
+                        "properties": {
+                          "field": {
+                            "type": "string",
+                            "pattern": "^[a-z][a-zA-Z0-9]*$"
+                          },
+                          "in": {
+                            "minItems": 1,
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "required": ["field", "in"],
+                        "additionalProperties": false
+                      },
+                      "type": {
+                        "type": "string",
+                        "const": "select"
+                      },
+                      "options": {
+                        "minItems": 1,
+                        "type": "array",
+                        "items": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "minLength": 1
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "value": {
+                                  "type": "string",
+                                  "minLength": 1
+                                },
+                                "label": {
+                                  "type": "string"
+                                },
+                                "group": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": ["value"],
+                              "additionalProperties": false
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    "required": ["key", "label", "type", "options"],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "key": {
+                        "type": "string",
+                        "pattern": "^[a-z][a-zA-Z0-9]*$"
+                      },
+                      "label": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "help": {
+                        "type": "string"
+                      },
+                      "required": {
+                        "type": "boolean"
+                      },
+                      "showIf": {
+                        "type": "object",
+                        "properties": {
+                          "field": {
+                            "type": "string",
+                            "pattern": "^[a-z][a-zA-Z0-9]*$"
+                          },
+                          "in": {
+                            "minItems": 1,
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "required": ["field", "in"],
+                        "additionalProperties": false
+                      },
+                      "type": {
+                        "type": "string",
+                        "const": "multiselect"
+                      },
+                      "options": {
+                        "minItems": 1,
+                        "type": "array",
+                        "items": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "minLength": 1
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "value": {
+                                  "type": "string",
+                                  "minLength": 1
+                                },
+                                "label": {
+                                  "type": "string"
+                                },
+                                "group": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": ["value"],
+                              "additionalProperties": false
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    "required": ["key", "label", "type", "options"],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "key": {
+                        "type": "string",
+                        "pattern": "^[a-z][a-zA-Z0-9]*$"
+                      },
+                      "label": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "help": {
+                        "type": "string"
+                      },
+                      "required": {
+                        "type": "boolean"
+                      },
+                      "showIf": {
+                        "type": "object",
+                        "properties": {
+                          "field": {
+                            "type": "string",
+                            "pattern": "^[a-z][a-zA-Z0-9]*$"
+                          },
+                          "in": {
+                            "minItems": 1,
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "required": ["field", "in"],
+                        "additionalProperties": false
+                      },
+                      "type": {
+                        "type": "string",
+                        "const": "text"
+                      },
+                      "maxLength": {
+                        "type": "integer",
+                        "exclusiveMinimum": 0,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": ["key", "label", "type"],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "key": {
+                        "type": "string",
+                        "pattern": "^[a-z][a-zA-Z0-9]*$"
+                      },
+                      "label": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "help": {
+                        "type": "string"
+                      },
+                      "required": {
+                        "type": "boolean"
+                      },
+                      "showIf": {
+                        "type": "object",
+                        "properties": {
+                          "field": {
+                            "type": "string",
+                            "pattern": "^[a-z][a-zA-Z0-9]*$"
+                          },
+                          "in": {
+                            "minItems": 1,
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "required": ["field", "in"],
+                        "additionalProperties": false
+                      },
+                      "type": {
+                        "type": "string",
+                        "const": "number"
+                      },
+                      "min": {
+                        "type": "number"
+                      },
+                      "max": {
+                        "type": "number"
+                      },
+                      "integer": {
+                        "type": "boolean"
+                      }
+                    },
+                    "required": ["key", "label", "type"],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "key": {
+                        "type": "string",
+                        "pattern": "^[a-z][a-zA-Z0-9]*$"
+                      },
+                      "label": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "help": {
+                        "type": "string"
+                      },
+                      "required": {
+                        "type": "boolean"
+                      },
+                      "showIf": {
+                        "type": "object",
+                        "properties": {
+                          "field": {
+                            "type": "string",
+                            "pattern": "^[a-z][a-zA-Z0-9]*$"
+                          },
+                          "in": {
+                            "minItems": 1,
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "required": ["field", "in"],
+                        "additionalProperties": false
+                      },
+                      "type": {
+                        "type": "string",
+                        "const": "url"
+                      }
+                    },
+                    "required": ["key", "label", "type"],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "key": {
+                        "type": "string",
+                        "pattern": "^[a-z][a-zA-Z0-9]*$"
+                      },
+                      "label": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "help": {
+                        "type": "string"
+                      },
+                      "required": {
+                        "type": "boolean"
+                      },
+                      "showIf": {
+                        "type": "object",
+                        "properties": {
+                          "field": {
+                            "type": "string",
+                            "pattern": "^[a-z][a-zA-Z0-9]*$"
+                          },
+                          "in": {
+                            "minItems": 1,
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "required": ["field", "in"],
+                        "additionalProperties": false
+                      },
+                      "type": {
+                        "type": "string",
+                        "const": "list"
+                      },
+                      "maxItems": {
+                        "type": "integer",
+                        "exclusiveMinimum": 0,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": ["key", "label", "type"],
+                    "additionalProperties": false
+                  }
+                ]
+              }
+            }
+          },
+          "required": ["fields"],
+          "additionalProperties": false
+        },
+        "lineup": {
+          "type": "object",
+          "properties": {
+            "starters": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            },
+            "maxSubs": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "squadMin": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            },
+            "squadMax": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            },
+            "positionMin": {
+              "type": "object",
+              "propertyNames": {
+                "type": "string"
+              },
+              "additionalProperties": {
+                "type": "integer",
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
+              }
+            }
+          },
+          "required": ["starters", "maxSubs", "squadMin", "squadMax"],
+          "additionalProperties": false
+        },
+        "events": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "standings": {
+          "type": "object",
+          "properties": {
+            "win": {
+              "type": "number"
+            },
+            "loss": {
+              "type": "number"
+            },
+            "draw": {
+              "type": "number"
+            },
+            "tie": {
+              "type": "number"
+            },
+            "noResult": {
+              "type": "number"
+            },
+            "tiebreakers": {
+              "minItems": 1,
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "required": ["win", "loss", "tiebreakers"],
+          "additionalProperties": false
+        },
+        "fantasy": {
+          "type": "object",
+          "properties": {
+            "squad": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            },
+            "credits": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "points": {
+              "type": "object",
+              "propertyNames": {
+                "type": "string"
+              },
+              "additionalProperties": {
+                "type": "number"
+              }
+            }
+          },
+          "required": ["squad", "credits", "points"],
+          "additionalProperties": false
+        },
+        "overlay": {
+          "type": "object",
+          "properties": {
+            "scorebug": {
+              "minItems": 1,
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "popups": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "required": ["scorebug", "popups"],
+          "additionalProperties": false
+        },
+        "scoringModel": {
+          "type": "string",
+          "const": "timed_goal"
+        },
+        "format": {
+          "type": "object",
+          "properties": {
+            "periods": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            },
+            "periodMinutes": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            },
+            "extraTime": {
+              "type": "boolean"
+            },
+            "extraTimeMinutes": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            },
+            "shootout": {
+              "type": "boolean"
+            }
+          },
+          "required": ["periods", "periodMinutes", "extraTime", "shootout"],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "id",
+        "version",
+        "name",
+        "teamSport",
+        "registration",
+        "lineup",
+        "scoringModel",
+        "format"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "$schema": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*$"
+        },
+        "version": {
+          "type": "string",
+          "pattern": "^\\d+\\.\\d+\\.\\d+$"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "teamSport": {
+          "type": "boolean"
+        },
+        "registration": {
+          "type": "object",
+          "properties": {
+            "fields": {
+              "type": "array",
+              "items": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "key": {
+                        "type": "string",
+                        "pattern": "^[a-z][a-zA-Z0-9]*$"
+                      },
+                      "label": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "help": {
+                        "type": "string"
+                      },
+                      "required": {
+                        "type": "boolean"
+                      },
+                      "showIf": {
+                        "type": "object",
+                        "properties": {
+                          "field": {
+                            "type": "string",
+                            "pattern": "^[a-z][a-zA-Z0-9]*$"
+                          },
+                          "in": {
+                            "minItems": 1,
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "required": ["field", "in"],
+                        "additionalProperties": false
+                      },
+                      "type": {
+                        "type": "string",
+                        "const": "select"
+                      },
+                      "options": {
+                        "minItems": 1,
+                        "type": "array",
+                        "items": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "minLength": 1
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "value": {
+                                  "type": "string",
+                                  "minLength": 1
+                                },
+                                "label": {
+                                  "type": "string"
+                                },
+                                "group": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": ["value"],
+                              "additionalProperties": false
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    "required": ["key", "label", "type", "options"],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "key": {
+                        "type": "string",
+                        "pattern": "^[a-z][a-zA-Z0-9]*$"
+                      },
+                      "label": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "help": {
+                        "type": "string"
+                      },
+                      "required": {
+                        "type": "boolean"
+                      },
+                      "showIf": {
+                        "type": "object",
+                        "properties": {
+                          "field": {
+                            "type": "string",
+                            "pattern": "^[a-z][a-zA-Z0-9]*$"
+                          },
+                          "in": {
+                            "minItems": 1,
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "required": ["field", "in"],
+                        "additionalProperties": false
+                      },
+                      "type": {
+                        "type": "string",
+                        "const": "multiselect"
+                      },
+                      "options": {
+                        "minItems": 1,
+                        "type": "array",
+                        "items": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "minLength": 1
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "value": {
+                                  "type": "string",
+                                  "minLength": 1
+                                },
+                                "label": {
+                                  "type": "string"
+                                },
+                                "group": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": ["value"],
+                              "additionalProperties": false
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    "required": ["key", "label", "type", "options"],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "key": {
+                        "type": "string",
+                        "pattern": "^[a-z][a-zA-Z0-9]*$"
+                      },
+                      "label": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "help": {
+                        "type": "string"
+                      },
+                      "required": {
+                        "type": "boolean"
+                      },
+                      "showIf": {
+                        "type": "object",
+                        "properties": {
+                          "field": {
+                            "type": "string",
+                            "pattern": "^[a-z][a-zA-Z0-9]*$"
+                          },
+                          "in": {
+                            "minItems": 1,
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "required": ["field", "in"],
+                        "additionalProperties": false
+                      },
+                      "type": {
+                        "type": "string",
+                        "const": "text"
+                      },
+                      "maxLength": {
+                        "type": "integer",
+                        "exclusiveMinimum": 0,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": ["key", "label", "type"],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "key": {
+                        "type": "string",
+                        "pattern": "^[a-z][a-zA-Z0-9]*$"
+                      },
+                      "label": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "help": {
+                        "type": "string"
+                      },
+                      "required": {
+                        "type": "boolean"
+                      },
+                      "showIf": {
+                        "type": "object",
+                        "properties": {
+                          "field": {
+                            "type": "string",
+                            "pattern": "^[a-z][a-zA-Z0-9]*$"
+                          },
+                          "in": {
+                            "minItems": 1,
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "required": ["field", "in"],
+                        "additionalProperties": false
+                      },
+                      "type": {
+                        "type": "string",
+                        "const": "number"
+                      },
+                      "min": {
+                        "type": "number"
+                      },
+                      "max": {
+                        "type": "number"
+                      },
+                      "integer": {
+                        "type": "boolean"
+                      }
+                    },
+                    "required": ["key", "label", "type"],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "key": {
+                        "type": "string",
+                        "pattern": "^[a-z][a-zA-Z0-9]*$"
+                      },
+                      "label": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "help": {
+                        "type": "string"
+                      },
+                      "required": {
+                        "type": "boolean"
+                      },
+                      "showIf": {
+                        "type": "object",
+                        "properties": {
+                          "field": {
+                            "type": "string",
+                            "pattern": "^[a-z][a-zA-Z0-9]*$"
+                          },
+                          "in": {
+                            "minItems": 1,
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "required": ["field", "in"],
+                        "additionalProperties": false
+                      },
+                      "type": {
+                        "type": "string",
+                        "const": "url"
+                      }
+                    },
+                    "required": ["key", "label", "type"],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "key": {
+                        "type": "string",
+                        "pattern": "^[a-z][a-zA-Z0-9]*$"
+                      },
+                      "label": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "help": {
+                        "type": "string"
+                      },
+                      "required": {
+                        "type": "boolean"
+                      },
+                      "showIf": {
+                        "type": "object",
+                        "properties": {
+                          "field": {
+                            "type": "string",
+                            "pattern": "^[a-z][a-zA-Z0-9]*$"
+                          },
+                          "in": {
+                            "minItems": 1,
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "required": ["field", "in"],
+                        "additionalProperties": false
+                      },
+                      "type": {
+                        "type": "string",
+                        "const": "list"
+                      },
+                      "maxItems": {
+                        "type": "integer",
+                        "exclusiveMinimum": 0,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": ["key", "label", "type"],
+                    "additionalProperties": false
+                  }
+                ]
+              }
+            }
+          },
+          "required": ["fields"],
+          "additionalProperties": false
+        },
+        "lineup": {
+          "type": "object",
+          "properties": {
+            "starters": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            },
+            "maxSubs": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "squadMin": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            },
+            "squadMax": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            },
+            "positionMin": {
+              "type": "object",
+              "propertyNames": {
+                "type": "string"
+              },
+              "additionalProperties": {
+                "type": "integer",
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
+              }
+            }
+          },
+          "required": ["starters", "maxSubs", "squadMin", "squadMax"],
+          "additionalProperties": false
+        },
+        "events": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "standings": {
+          "type": "object",
+          "properties": {
+            "win": {
+              "type": "number"
+            },
+            "loss": {
+              "type": "number"
+            },
+            "draw": {
+              "type": "number"
+            },
+            "tie": {
+              "type": "number"
+            },
+            "noResult": {
+              "type": "number"
+            },
+            "tiebreakers": {
+              "minItems": 1,
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "required": ["win", "loss", "tiebreakers"],
+          "additionalProperties": false
+        },
+        "fantasy": {
+          "type": "object",
+          "properties": {
+            "squad": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            },
+            "credits": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "points": {
+              "type": "object",
+              "propertyNames": {
+                "type": "string"
+              },
+              "additionalProperties": {
+                "type": "number"
+              }
+            }
+          },
+          "required": ["squad", "credits", "points"],
+          "additionalProperties": false
+        },
+        "overlay": {
+          "type": "object",
+          "properties": {
+            "scorebug": {
+              "minItems": 1,
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "popups": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "required": ["scorebug", "popups"],
+          "additionalProperties": false
+        },
+        "scoringModel": {
+          "type": "string",
+          "const": "raid"
+        },
+        "format": {
+          "type": "object",
+          "properties": {
+            "halves": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            },
+            "halfMinutes": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            },
+            "raidSeconds": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            },
+            "playersOnMat": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            }
+          },
+          "required": ["halves", "halfMinutes", "raidSeconds", "playersOnMat"],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "id",
+        "version",
+        "name",
+        "teamSport",
+        "registration",
+        "lineup",
+        "scoringModel",
+        "format"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "$schema": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*$"
+        },
+        "version": {
+          "type": "string",
+          "pattern": "^\\d+\\.\\d+\\.\\d+$"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "teamSport": {
+          "type": "boolean"
+        },
+        "registration": {
+          "type": "object",
+          "properties": {
+            "fields": {
+              "type": "array",
+              "items": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "key": {
+                        "type": "string",
+                        "pattern": "^[a-z][a-zA-Z0-9]*$"
+                      },
+                      "label": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "help": {
+                        "type": "string"
+                      },
+                      "required": {
+                        "type": "boolean"
+                      },
+                      "showIf": {
+                        "type": "object",
+                        "properties": {
+                          "field": {
+                            "type": "string",
+                            "pattern": "^[a-z][a-zA-Z0-9]*$"
+                          },
+                          "in": {
+                            "minItems": 1,
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "required": ["field", "in"],
+                        "additionalProperties": false
+                      },
+                      "type": {
+                        "type": "string",
+                        "const": "select"
+                      },
+                      "options": {
+                        "minItems": 1,
+                        "type": "array",
+                        "items": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "minLength": 1
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "value": {
+                                  "type": "string",
+                                  "minLength": 1
+                                },
+                                "label": {
+                                  "type": "string"
+                                },
+                                "group": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": ["value"],
+                              "additionalProperties": false
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    "required": ["key", "label", "type", "options"],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "key": {
+                        "type": "string",
+                        "pattern": "^[a-z][a-zA-Z0-9]*$"
+                      },
+                      "label": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "help": {
+                        "type": "string"
+                      },
+                      "required": {
+                        "type": "boolean"
+                      },
+                      "showIf": {
+                        "type": "object",
+                        "properties": {
+                          "field": {
+                            "type": "string",
+                            "pattern": "^[a-z][a-zA-Z0-9]*$"
+                          },
+                          "in": {
+                            "minItems": 1,
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "required": ["field", "in"],
+                        "additionalProperties": false
+                      },
+                      "type": {
+                        "type": "string",
+                        "const": "multiselect"
+                      },
+                      "options": {
+                        "minItems": 1,
+                        "type": "array",
+                        "items": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "minLength": 1
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "value": {
+                                  "type": "string",
+                                  "minLength": 1
+                                },
+                                "label": {
+                                  "type": "string"
+                                },
+                                "group": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": ["value"],
+                              "additionalProperties": false
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    "required": ["key", "label", "type", "options"],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "key": {
+                        "type": "string",
+                        "pattern": "^[a-z][a-zA-Z0-9]*$"
+                      },
+                      "label": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "help": {
+                        "type": "string"
+                      },
+                      "required": {
+                        "type": "boolean"
+                      },
+                      "showIf": {
+                        "type": "object",
+                        "properties": {
+                          "field": {
+                            "type": "string",
+                            "pattern": "^[a-z][a-zA-Z0-9]*$"
+                          },
+                          "in": {
+                            "minItems": 1,
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "required": ["field", "in"],
+                        "additionalProperties": false
+                      },
+                      "type": {
+                        "type": "string",
+                        "const": "text"
+                      },
+                      "maxLength": {
+                        "type": "integer",
+                        "exclusiveMinimum": 0,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": ["key", "label", "type"],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "key": {
+                        "type": "string",
+                        "pattern": "^[a-z][a-zA-Z0-9]*$"
+                      },
+                      "label": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "help": {
+                        "type": "string"
+                      },
+                      "required": {
+                        "type": "boolean"
+                      },
+                      "showIf": {
+                        "type": "object",
+                        "properties": {
+                          "field": {
+                            "type": "string",
+                            "pattern": "^[a-z][a-zA-Z0-9]*$"
+                          },
+                          "in": {
+                            "minItems": 1,
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "required": ["field", "in"],
+                        "additionalProperties": false
+                      },
+                      "type": {
+                        "type": "string",
+                        "const": "number"
+                      },
+                      "min": {
+                        "type": "number"
+                      },
+                      "max": {
+                        "type": "number"
+                      },
+                      "integer": {
+                        "type": "boolean"
+                      }
+                    },
+                    "required": ["key", "label", "type"],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "key": {
+                        "type": "string",
+                        "pattern": "^[a-z][a-zA-Z0-9]*$"
+                      },
+                      "label": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "help": {
+                        "type": "string"
+                      },
+                      "required": {
+                        "type": "boolean"
+                      },
+                      "showIf": {
+                        "type": "object",
+                        "properties": {
+                          "field": {
+                            "type": "string",
+                            "pattern": "^[a-z][a-zA-Z0-9]*$"
+                          },
+                          "in": {
+                            "minItems": 1,
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "required": ["field", "in"],
+                        "additionalProperties": false
+                      },
+                      "type": {
+                        "type": "string",
+                        "const": "url"
+                      }
+                    },
+                    "required": ["key", "label", "type"],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "key": {
+                        "type": "string",
+                        "pattern": "^[a-z][a-zA-Z0-9]*$"
+                      },
+                      "label": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "help": {
+                        "type": "string"
+                      },
+                      "required": {
+                        "type": "boolean"
+                      },
+                      "showIf": {
+                        "type": "object",
+                        "properties": {
+                          "field": {
+                            "type": "string",
+                            "pattern": "^[a-z][a-zA-Z0-9]*$"
+                          },
+                          "in": {
+                            "minItems": 1,
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "required": ["field", "in"],
+                        "additionalProperties": false
+                      },
+                      "type": {
+                        "type": "string",
+                        "const": "list"
+                      },
+                      "maxItems": {
+                        "type": "integer",
+                        "exclusiveMinimum": 0,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": ["key", "label", "type"],
+                    "additionalProperties": false
+                  }
+                ]
+              }
+            }
+          },
+          "required": ["fields"],
+          "additionalProperties": false
+        },
+        "lineup": {
+          "type": "object",
+          "properties": {
+            "starters": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            },
+            "maxSubs": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "squadMin": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            },
+            "squadMax": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            },
+            "positionMin": {
+              "type": "object",
+              "propertyNames": {
+                "type": "string"
+              },
+              "additionalProperties": {
+                "type": "integer",
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
+              }
+            }
+          },
+          "required": ["starters", "maxSubs", "squadMin", "squadMax"],
+          "additionalProperties": false
+        },
+        "events": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "standings": {
+          "type": "object",
+          "properties": {
+            "win": {
+              "type": "number"
+            },
+            "loss": {
+              "type": "number"
+            },
+            "draw": {
+              "type": "number"
+            },
+            "tie": {
+              "type": "number"
+            },
+            "noResult": {
+              "type": "number"
+            },
+            "tiebreakers": {
+              "minItems": 1,
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "required": ["win", "loss", "tiebreakers"],
+          "additionalProperties": false
+        },
+        "fantasy": {
+          "type": "object",
+          "properties": {
+            "squad": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            },
+            "credits": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "points": {
+              "type": "object",
+              "propertyNames": {
+                "type": "string"
+              },
+              "additionalProperties": {
+                "type": "number"
+              }
+            }
+          },
+          "required": ["squad", "credits", "points"],
+          "additionalProperties": false
+        },
+        "overlay": {
+          "type": "object",
+          "properties": {
+            "scorebug": {
+              "minItems": 1,
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "popups": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "required": ["scorebug", "popups"],
+          "additionalProperties": false
+        },
+        "scoringModel": {
+          "type": "string",
+          "const": "timed_points"
+        },
+        "format": {
+          "type": "object",
+          "properties": {
+            "periods": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            },
+            "periodMinutes": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            },
+            "overtimeMinutes": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            },
+            "shotClockSeconds": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            }
+          },
+          "required": ["periods", "periodMinutes", "overtimeMinutes"],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "id",
+        "version",
+        "name",
+        "teamSport",
+        "registration",
+        "lineup",
+        "scoringModel",
+        "format"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "$schema": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*$"
+        },
+        "version": {
+          "type": "string",
+          "pattern": "^\\d+\\.\\d+\\.\\d+$"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "teamSport": {
+          "type": "boolean"
+        },
+        "registration": {
+          "type": "object",
+          "properties": {
+            "fields": {
+              "type": "array",
+              "items": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "key": {
+                        "type": "string",
+                        "pattern": "^[a-z][a-zA-Z0-9]*$"
+                      },
+                      "label": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "help": {
+                        "type": "string"
+                      },
+                      "required": {
+                        "type": "boolean"
+                      },
+                      "showIf": {
+                        "type": "object",
+                        "properties": {
+                          "field": {
+                            "type": "string",
+                            "pattern": "^[a-z][a-zA-Z0-9]*$"
+                          },
+                          "in": {
+                            "minItems": 1,
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "required": ["field", "in"],
+                        "additionalProperties": false
+                      },
+                      "type": {
+                        "type": "string",
+                        "const": "select"
+                      },
+                      "options": {
+                        "minItems": 1,
+                        "type": "array",
+                        "items": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "minLength": 1
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "value": {
+                                  "type": "string",
+                                  "minLength": 1
+                                },
+                                "label": {
+                                  "type": "string"
+                                },
+                                "group": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": ["value"],
+                              "additionalProperties": false
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    "required": ["key", "label", "type", "options"],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "key": {
+                        "type": "string",
+                        "pattern": "^[a-z][a-zA-Z0-9]*$"
+                      },
+                      "label": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "help": {
+                        "type": "string"
+                      },
+                      "required": {
+                        "type": "boolean"
+                      },
+                      "showIf": {
+                        "type": "object",
+                        "properties": {
+                          "field": {
+                            "type": "string",
+                            "pattern": "^[a-z][a-zA-Z0-9]*$"
+                          },
+                          "in": {
+                            "minItems": 1,
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "required": ["field", "in"],
+                        "additionalProperties": false
+                      },
+                      "type": {
+                        "type": "string",
+                        "const": "multiselect"
+                      },
+                      "options": {
+                        "minItems": 1,
+                        "type": "array",
+                        "items": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "minLength": 1
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "value": {
+                                  "type": "string",
+                                  "minLength": 1
+                                },
+                                "label": {
+                                  "type": "string"
+                                },
+                                "group": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": ["value"],
+                              "additionalProperties": false
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    "required": ["key", "label", "type", "options"],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "key": {
+                        "type": "string",
+                        "pattern": "^[a-z][a-zA-Z0-9]*$"
+                      },
+                      "label": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "help": {
+                        "type": "string"
+                      },
+                      "required": {
+                        "type": "boolean"
+                      },
+                      "showIf": {
+                        "type": "object",
+                        "properties": {
+                          "field": {
+                            "type": "string",
+                            "pattern": "^[a-z][a-zA-Z0-9]*$"
+                          },
+                          "in": {
+                            "minItems": 1,
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "required": ["field", "in"],
+                        "additionalProperties": false
+                      },
+                      "type": {
+                        "type": "string",
+                        "const": "text"
+                      },
+                      "maxLength": {
+                        "type": "integer",
+                        "exclusiveMinimum": 0,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": ["key", "label", "type"],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "key": {
+                        "type": "string",
+                        "pattern": "^[a-z][a-zA-Z0-9]*$"
+                      },
+                      "label": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "help": {
+                        "type": "string"
+                      },
+                      "required": {
+                        "type": "boolean"
+                      },
+                      "showIf": {
+                        "type": "object",
+                        "properties": {
+                          "field": {
+                            "type": "string",
+                            "pattern": "^[a-z][a-zA-Z0-9]*$"
+                          },
+                          "in": {
+                            "minItems": 1,
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "required": ["field", "in"],
+                        "additionalProperties": false
+                      },
+                      "type": {
+                        "type": "string",
+                        "const": "number"
+                      },
+                      "min": {
+                        "type": "number"
+                      },
+                      "max": {
+                        "type": "number"
+                      },
+                      "integer": {
+                        "type": "boolean"
+                      }
+                    },
+                    "required": ["key", "label", "type"],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "key": {
+                        "type": "string",
+                        "pattern": "^[a-z][a-zA-Z0-9]*$"
+                      },
+                      "label": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "help": {
+                        "type": "string"
+                      },
+                      "required": {
+                        "type": "boolean"
+                      },
+                      "showIf": {
+                        "type": "object",
+                        "properties": {
+                          "field": {
+                            "type": "string",
+                            "pattern": "^[a-z][a-zA-Z0-9]*$"
+                          },
+                          "in": {
+                            "minItems": 1,
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "required": ["field", "in"],
+                        "additionalProperties": false
+                      },
+                      "type": {
+                        "type": "string",
+                        "const": "url"
+                      }
+                    },
+                    "required": ["key", "label", "type"],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "key": {
+                        "type": "string",
+                        "pattern": "^[a-z][a-zA-Z0-9]*$"
+                      },
+                      "label": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "help": {
+                        "type": "string"
+                      },
+                      "required": {
+                        "type": "boolean"
+                      },
+                      "showIf": {
+                        "type": "object",
+                        "properties": {
+                          "field": {
+                            "type": "string",
+                            "pattern": "^[a-z][a-zA-Z0-9]*$"
+                          },
+                          "in": {
+                            "minItems": 1,
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "required": ["field", "in"],
+                        "additionalProperties": false
+                      },
+                      "type": {
+                        "type": "string",
+                        "const": "list"
+                      },
+                      "maxItems": {
+                        "type": "integer",
+                        "exclusiveMinimum": 0,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": ["key", "label", "type"],
+                    "additionalProperties": false
+                  }
+                ]
+              }
+            }
+          },
+          "required": ["fields"],
+          "additionalProperties": false
+        },
+        "lineup": {
+          "type": "object",
+          "properties": {
+            "starters": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            },
+            "maxSubs": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "squadMin": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            },
+            "squadMax": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            },
+            "positionMin": {
+              "type": "object",
+              "propertyNames": {
+                "type": "string"
+              },
+              "additionalProperties": {
+                "type": "integer",
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
+              }
+            }
+          },
+          "required": ["starters", "maxSubs", "squadMin", "squadMax"],
+          "additionalProperties": false
+        },
+        "events": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "standings": {
+          "type": "object",
+          "properties": {
+            "win": {
+              "type": "number"
+            },
+            "loss": {
+              "type": "number"
+            },
+            "draw": {
+              "type": "number"
+            },
+            "tie": {
+              "type": "number"
+            },
+            "noResult": {
+              "type": "number"
+            },
+            "tiebreakers": {
+              "minItems": 1,
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "required": ["win", "loss", "tiebreakers"],
+          "additionalProperties": false
+        },
+        "fantasy": {
+          "type": "object",
+          "properties": {
+            "squad": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            },
+            "credits": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "points": {
+              "type": "object",
+              "propertyNames": {
+                "type": "string"
+              },
+              "additionalProperties": {
+                "type": "number"
+              }
+            }
+          },
+          "required": ["squad", "credits", "points"],
+          "additionalProperties": false
+        },
+        "overlay": {
+          "type": "object",
+          "properties": {
+            "scorebug": {
+              "minItems": 1,
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "popups": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "required": ["scorebug", "popups"],
+          "additionalProperties": false
+        },
+        "scoringModel": {
+          "type": "string",
+          "const": "sets"
+        },
+        "format": {
+          "type": "object",
+          "properties": {
+            "bestOf": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            },
+            "pointsPerSet": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            },
+            "winBy": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            },
+            "pointCap": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            }
+          },
+          "required": ["bestOf", "pointsPerSet", "winBy"],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "id",
+        "version",
+        "name",
+        "teamSport",
+        "registration",
+        "lineup",
+        "scoringModel",
+        "format"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "$schema": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*$"
+        },
+        "version": {
+          "type": "string",
+          "pattern": "^\\d+\\.\\d+\\.\\d+$"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "teamSport": {
+          "type": "boolean"
+        },
+        "registration": {
+          "type": "object",
+          "properties": {
+            "fields": {
+              "type": "array",
+              "items": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "key": {
+                        "type": "string",
+                        "pattern": "^[a-z][a-zA-Z0-9]*$"
+                      },
+                      "label": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "help": {
+                        "type": "string"
+                      },
+                      "required": {
+                        "type": "boolean"
+                      },
+                      "showIf": {
+                        "type": "object",
+                        "properties": {
+                          "field": {
+                            "type": "string",
+                            "pattern": "^[a-z][a-zA-Z0-9]*$"
+                          },
+                          "in": {
+                            "minItems": 1,
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "required": ["field", "in"],
+                        "additionalProperties": false
+                      },
+                      "type": {
+                        "type": "string",
+                        "const": "select"
+                      },
+                      "options": {
+                        "minItems": 1,
+                        "type": "array",
+                        "items": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "minLength": 1
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "value": {
+                                  "type": "string",
+                                  "minLength": 1
+                                },
+                                "label": {
+                                  "type": "string"
+                                },
+                                "group": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": ["value"],
+                              "additionalProperties": false
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    "required": ["key", "label", "type", "options"],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "key": {
+                        "type": "string",
+                        "pattern": "^[a-z][a-zA-Z0-9]*$"
+                      },
+                      "label": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "help": {
+                        "type": "string"
+                      },
+                      "required": {
+                        "type": "boolean"
+                      },
+                      "showIf": {
+                        "type": "object",
+                        "properties": {
+                          "field": {
+                            "type": "string",
+                            "pattern": "^[a-z][a-zA-Z0-9]*$"
+                          },
+                          "in": {
+                            "minItems": 1,
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "required": ["field", "in"],
+                        "additionalProperties": false
+                      },
+                      "type": {
+                        "type": "string",
+                        "const": "multiselect"
+                      },
+                      "options": {
+                        "minItems": 1,
+                        "type": "array",
+                        "items": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "minLength": 1
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "value": {
+                                  "type": "string",
+                                  "minLength": 1
+                                },
+                                "label": {
+                                  "type": "string"
+                                },
+                                "group": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": ["value"],
+                              "additionalProperties": false
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    "required": ["key", "label", "type", "options"],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "key": {
+                        "type": "string",
+                        "pattern": "^[a-z][a-zA-Z0-9]*$"
+                      },
+                      "label": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "help": {
+                        "type": "string"
+                      },
+                      "required": {
+                        "type": "boolean"
+                      },
+                      "showIf": {
+                        "type": "object",
+                        "properties": {
+                          "field": {
+                            "type": "string",
+                            "pattern": "^[a-z][a-zA-Z0-9]*$"
+                          },
+                          "in": {
+                            "minItems": 1,
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "required": ["field", "in"],
+                        "additionalProperties": false
+                      },
+                      "type": {
+                        "type": "string",
+                        "const": "text"
+                      },
+                      "maxLength": {
+                        "type": "integer",
+                        "exclusiveMinimum": 0,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": ["key", "label", "type"],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "key": {
+                        "type": "string",
+                        "pattern": "^[a-z][a-zA-Z0-9]*$"
+                      },
+                      "label": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "help": {
+                        "type": "string"
+                      },
+                      "required": {
+                        "type": "boolean"
+                      },
+                      "showIf": {
+                        "type": "object",
+                        "properties": {
+                          "field": {
+                            "type": "string",
+                            "pattern": "^[a-z][a-zA-Z0-9]*$"
+                          },
+                          "in": {
+                            "minItems": 1,
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "required": ["field", "in"],
+                        "additionalProperties": false
+                      },
+                      "type": {
+                        "type": "string",
+                        "const": "number"
+                      },
+                      "min": {
+                        "type": "number"
+                      },
+                      "max": {
+                        "type": "number"
+                      },
+                      "integer": {
+                        "type": "boolean"
+                      }
+                    },
+                    "required": ["key", "label", "type"],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "key": {
+                        "type": "string",
+                        "pattern": "^[a-z][a-zA-Z0-9]*$"
+                      },
+                      "label": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "help": {
+                        "type": "string"
+                      },
+                      "required": {
+                        "type": "boolean"
+                      },
+                      "showIf": {
+                        "type": "object",
+                        "properties": {
+                          "field": {
+                            "type": "string",
+                            "pattern": "^[a-z][a-zA-Z0-9]*$"
+                          },
+                          "in": {
+                            "minItems": 1,
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "required": ["field", "in"],
+                        "additionalProperties": false
+                      },
+                      "type": {
+                        "type": "string",
+                        "const": "url"
+                      }
+                    },
+                    "required": ["key", "label", "type"],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "key": {
+                        "type": "string",
+                        "pattern": "^[a-z][a-zA-Z0-9]*$"
+                      },
+                      "label": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "help": {
+                        "type": "string"
+                      },
+                      "required": {
+                        "type": "boolean"
+                      },
+                      "showIf": {
+                        "type": "object",
+                        "properties": {
+                          "field": {
+                            "type": "string",
+                            "pattern": "^[a-z][a-zA-Z0-9]*$"
+                          },
+                          "in": {
+                            "minItems": 1,
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "required": ["field", "in"],
+                        "additionalProperties": false
+                      },
+                      "type": {
+                        "type": "string",
+                        "const": "list"
+                      },
+                      "maxItems": {
+                        "type": "integer",
+                        "exclusiveMinimum": 0,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": ["key", "label", "type"],
+                    "additionalProperties": false
+                  }
+                ]
+              }
+            }
+          },
+          "required": ["fields"],
+          "additionalProperties": false
+        },
+        "lineup": {
+          "type": "object",
+          "properties": {
+            "starters": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            },
+            "maxSubs": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "squadMin": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            },
+            "squadMax": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            },
+            "positionMin": {
+              "type": "object",
+              "propertyNames": {
+                "type": "string"
+              },
+              "additionalProperties": {
+                "type": "integer",
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
+              }
+            }
+          },
+          "required": ["starters", "maxSubs", "squadMin", "squadMax"],
+          "additionalProperties": false
+        },
+        "events": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "standings": {
+          "type": "object",
+          "properties": {
+            "win": {
+              "type": "number"
+            },
+            "loss": {
+              "type": "number"
+            },
+            "draw": {
+              "type": "number"
+            },
+            "tie": {
+              "type": "number"
+            },
+            "noResult": {
+              "type": "number"
+            },
+            "tiebreakers": {
+              "minItems": 1,
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "required": ["win", "loss", "tiebreakers"],
+          "additionalProperties": false
+        },
+        "fantasy": {
+          "type": "object",
+          "properties": {
+            "squad": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            },
+            "credits": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "points": {
+              "type": "object",
+              "propertyNames": {
+                "type": "string"
+              },
+              "additionalProperties": {
+                "type": "number"
+              }
+            }
+          },
+          "required": ["squad", "credits", "points"],
+          "additionalProperties": false
+        },
+        "overlay": {
+          "type": "object",
+          "properties": {
+            "scorebug": {
+              "minItems": 1,
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "popups": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "required": ["scorebug", "popups"],
+          "additionalProperties": false
+        },
+        "scoringModel": {
+          "type": "string",
+          "const": "result_only"
+        },
+        "format": {
+          "type": "object",
+          "properties": {
+            "draws": {
+              "type": "boolean"
+            },
+            "timeControl": {
+              "type": "string"
+            }
+          },
+          "required": ["draws"],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "id",
+        "version",
+        "name",
+        "teamSport",
+        "registration",
+        "lineup",
+        "scoringModel",
+        "format"
+      ],
+      "additionalProperties": false
+    }
+  ]
+}

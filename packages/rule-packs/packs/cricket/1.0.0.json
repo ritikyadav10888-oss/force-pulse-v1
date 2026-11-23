@@ -1,0 +1,115 @@
+{
+  "$schema": "../../schema/rule-pack.schema.json",
+  "id": "cricket",
+  "version": "1.0.0",
+  "name": "Cricket (limited overs)",
+  "scoringModel": "ball",
+  "teamSport": true,
+  "registration": {
+    "fields": [
+      {
+        "key": "role",
+        "label": "Playing role",
+        "type": "select",
+        "required": true,
+        "options": [
+          { "value": "batter", "label": "Batter" },
+          { "value": "bowler", "label": "Bowler" },
+          { "value": "all_rounder", "label": "All-rounder" },
+          { "value": "wicket_keeper", "label": "Wicket-keeper" }
+        ]
+      },
+      {
+        "key": "battingHand",
+        "label": "Batting hand",
+        "type": "select",
+        "required": true,
+        "options": [
+          { "value": "right", "label": "Right" },
+          { "value": "left", "label": "Left" }
+        ]
+      },
+      {
+        "key": "battingPosition",
+        "label": "Batting position",
+        "type": "select",
+        "options": [
+          { "value": "top", "label": "Top order" },
+          { "value": "middle", "label": "Middle order" },
+          { "value": "lower", "label": "Lower order" }
+        ]
+      },
+      {
+        "key": "bowlingStyle",
+        "label": "Bowling style",
+        "type": "select",
+        "required": true,
+        "options": [
+          { "value": "right_arm_fast", "label": "Right-arm fast" },
+          { "value": "left_arm_fast", "label": "Left-arm fast" },
+          { "value": "right_arm_medium", "label": "Right-arm medium" },
+          { "value": "left_arm_medium", "label": "Left-arm medium" },
+          { "value": "off_spin", "label": "Off-spin" },
+          { "value": "leg_spin", "label": "Leg-spin" },
+          { "value": "none", "label": "Doesn't bowl" }
+        ]
+      }
+    ]
+  },
+  "lineup": {
+    "starters": 11,
+    "maxSubs": 4,
+    "squadMin": 11,
+    "squadMax": 18,
+    "positionMin": { "wicket_keeper": 1 }
+  },
+  "format": {
+    "innings": 1,
+    "oversPerInnings": 20,
+    "ballsPerOver": 6,
+    "maxOversPerBowler": 4,
+    "powerplayOvers": 6,
+    "superOver": true
+  },
+  "events": [
+    "dot",
+    "run",
+    "four",
+    "six",
+    "wide",
+    "no_ball",
+    "bye",
+    "leg_bye",
+    "wicket",
+    "retired",
+    "over_end",
+    "innings_end"
+  ],
+  "standings": {
+    "win": 2,
+    "tie": 1,
+    "noResult": 1,
+    "loss": 0,
+    "tiebreakers": ["points", "net_run_rate", "head_to_head", "lots"]
+  },
+  "fantasy": {
+    "squad": 11,
+    "credits": 100,
+    "points": {
+      "run": 1,
+      "four": 1,
+      "six": 2,
+      "wicket": 25,
+      "wicket.lbw_bowled": 8,
+      "catch": 8,
+      "stumping": 12,
+      "run_out": 6,
+      "maiden": 12,
+      "duck": -2
+    }
+  },
+  "overlay": {
+    "scorebug": ["teams", "score", "overs", "runRate", "batters", "bowler"],
+    "popups": ["four", "six", "wicket"]
+  }
+}

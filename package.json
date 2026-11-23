@@ -6,7 +6,7 @@
     "node": ">=22"
   },
   "scripts": {
-    "dev": "pnpm --filter @force-pulse/shared build && pnpm --parallel --filter ./apps/* dev",
+    "dev": "pnpm --filter \"./packages/*\" build && pnpm --parallel --filter ./apps/* dev",
     "build": "pnpm -r build",
     "lint": "eslint .",
     "typecheck": "pnpm -r typecheck",

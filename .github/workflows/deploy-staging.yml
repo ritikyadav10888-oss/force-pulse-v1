@@ -43,33 +43,33 @@ jobs:
           docker build -f apps/api/Dockerfile -t "$AR/api:$SHA" .
           docker push "$AR/api:$SHA"
 
-      - name: Run migrations (Cloud Run Job)
+      - name: Run migrations and seed (Cloud Run Job)
         run: |
           gcloud run jobs deploy fp-migrate --image "$AR/api:$SHA" \
             --service-account "$RUNTIME_SA" --set-cloudsql-instances "$SQL" \
             --set-secrets DATABASE_URL=database-url:latest \
-            --command node_modules/.bin/prisma --args migrate,deploy \
+            --command sh --args="-c,node_modules/.bin/prisma migrate deploy && node dist/seed.js" \
             --max-retries 0 --task-timeout 300
           gcloud run jobs execute fp-migrate --wait
 
       - name: Deploy API
         run: |
-          # Empty on the very first deploy (web not created yet); re-run once after.
           # Cloud Run serves each service on two URLs; allow both. Empty on the very first deploy; re-run once after.
           WEB_URLS=$(gcloud run services describe fp-web --format json 2>/dev/null \
             | jq -r '.metadata.annotations["run.googleapis.com/urls"] // "[]" | fromjson | join(",")' || true)
-          # ^@^ switches gcloud's list delimiter so CORS_ORIGIN can contain commas.
+          # ^@^ switches gcloud's list delimiter so values can contain commas.
           gcloud run deploy fp-api --image "$AR/api:$SHA" \
             --service-account "$RUNTIME_SA" --add-cloudsql-instances "$SQL" \
-            --set-secrets DATABASE_URL=database-url:latest \
-            --set-env-vars "^@^NODE_ENV=production@SENTRY_ENVIRONMENT=staging@CORS_ORIGIN=$WEB_URLS@SENTRY_DSN=${{ vars.API_SENTRY_DSN }}" \
+            --set-secrets DATABASE_URL=database-url:latest,JWT_SECRET=jwt-secret:latest \
+            --set-env-vars "^@^NODE_ENV=production@SENTRY_ENVIRONMENT=staging@CORS_ORIGIN=$WEB_URLS@SENTRY_DSN=${{ vars.API_SENTRY_DSN }}@GOOGLE_CLIENT_ID=${{ vars.GOOGLE_CLIENT_ID }}@SUPER_ADMIN_EMAILS=${{ vars.SUPER_ADMIN_EMAILS }}" \
             --allow-unauthenticated --min-instances 0 --max-instances 2
           echo "API_URL=$(gcloud run services describe fp-api --format 'value(status.url)')" >> "$GITHUB_ENV"
 
       - name: Build, push and deploy web
         run: |
           docker build -f apps/web/Dockerfile -t "$AR/web:$SHA" \
-            --build-arg NEXT_PUBLIC_API_URL="$API_URL" \
+            --build-arg API_URL="$API_URL" \
+            --build-arg NEXT_PUBLIC_GOOGLE_CLIENT_ID="${{ vars.GOOGLE_CLIENT_ID }}" \
             --build-arg NEXT_PUBLIC_SENTRY_DSN="${{ vars.WEB_SENTRY_DSN }}" .
           docker push "$AR/web:$SHA"
           gcloud run deploy fp-web --image "$AR/web:$SHA" \

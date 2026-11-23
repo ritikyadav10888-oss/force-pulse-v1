@@ -1,0 +1,17 @@
+{
+  "name": "@force-pulse/rule-packs",
+  "version": "0.0.0",
+  "private": true,
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "lock": "tsc -p tsconfig.build.json && node dist/lock.js"
+  },
+  "dependencies": {
+    "@force-pulse/shared": "workspace:^",
+    "zod": "^4.6.7"
+  }
+}

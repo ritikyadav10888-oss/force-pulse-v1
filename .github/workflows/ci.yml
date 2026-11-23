@@ -34,7 +34,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm format:check
       - run: pnpm lint
-      - run: pnpm --filter @force-pulse/shared build
+      - run: pnpm --filter "./packages/*" build
       - run: pnpm typecheck
       - name: Prisma migrate deploy + drift check
         working-directory: apps/api
