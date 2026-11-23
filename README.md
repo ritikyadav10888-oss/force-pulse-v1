@@ -79,6 +79,12 @@ One-time setup:
 4. Optional: Sentry. Create projects `force-pulse-web` and `force-pulse-api`, then set repo variables `WEB_SENTRY_DSN` and `API_SENTRY_DSN`.
 5. Run **Deploy staging** from the Actions tab, then run it **once more**. The first run creates `fp-web` after the API, so the API's `CORS_ORIGIN` is only filled in on the second run.
 
+**Live staging:**
+
+- Web: https://fp-web-407846370044.asia-south1.run.app (health: `/health`)
+- API: https://fp-api-407846370044.asia-south1.run.app (health: `/health`, Swagger: `/docs`)
+- GCP project `forcepulse` (number 407846370044), Cloud SQL instance `force-pulse-staging`
+
 ## Uptime checks
 
 Use Cloud Monitoring uptime checks (free tier) or UptimeRobot:
