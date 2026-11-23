@@ -26,3 +26,16 @@ describe('api()', () => {
     await expect(api('/players')).rejects.toEqual(new ApiError(400, 'dob: Invalid date'));
   });
 });
+
+describe('consent redirect', () => {
+  it('sends the browser to /consent when the API says consent_required', async () => {
+    const assign = vi.fn();
+    vi.stubGlobal('window', { location: { assign } });
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(json(403, { code: 'consent_required', message: 'Please accept' })),
+    );
+    await expect(api('/players')).rejects.toMatchObject({ status: 403, code: 'consent_required' });
+    expect(assign).toHaveBeenCalledWith('/consent');
+  });
+});

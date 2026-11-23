@@ -19,6 +19,8 @@ type AuthedRequest = Request & { user?: AuthUser };
 const PUBLIC = 'isPublic';
 /** Opt a route out of the global auth guard. */
 export const Public = () => SetMetadata(PUBLIC, true);
+export const isPublic = (reflector: Reflector, ctx: ExecutionContext) =>
+  reflector.getAllAndOverride<boolean>(PUBLIC, [ctx.getHandler(), ctx.getClass()]) === true;
 
 export const CurrentUser = createParamDecorator(
   (_: unknown, ctx: ExecutionContext) => ctx.switchToHttp().getRequest<AuthedRequest>().user!,
@@ -33,9 +35,7 @@ export class AuthGuard implements CanActivate {
   ) {}
 
   async canActivate(ctx: ExecutionContext) {
-    if (this.reflector.getAllAndOverride<boolean>(PUBLIC, [ctx.getHandler(), ctx.getClass()])) {
-      return true;
-    }
+    if (isPublic(this.reflector, ctx)) return true;
     const req = ctx.switchToHttp().getRequest<AuthedRequest>();
     // Bearer header for API clients and Swagger; cookie for the browser.
     const header = req.headers.authorization;

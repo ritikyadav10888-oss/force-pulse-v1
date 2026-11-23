@@ -1,4 +1,5 @@
 'use client';
+import Link from 'next/link';
 import Script from 'next/script';
 import { useRouter } from 'next/navigation';
 import { useRef, useState } from 'react';
@@ -59,8 +60,12 @@ export default function SignIn() {
         </p>
       )}
       <p className="text-sm text-neutral-600">
-        By signing in you agree that Force Pulse stores your profile to run tournaments. Phone,
-        emergency contact, medical notes and ID documents are visible only to organizers.
+        After signing in we&apos;ll ask for your consent to use your data. Phone, emergency contact,
+        medical notes and ID documents are visible only to organizers. Read the{' '}
+        <Link href="/privacy" className="underline">
+          privacy policy
+        </Link>
+        .
       </p>
     </main>
   );

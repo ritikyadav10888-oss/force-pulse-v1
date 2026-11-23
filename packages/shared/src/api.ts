@@ -51,9 +51,24 @@ export const listRegistrationsQuerySchema = z.object({
   status: z.enum(REGISTRATION_STATUSES).optional(),
 });
 
+/** Bump when the privacy policy changes meaningfully; everyone is asked to consent again. */
+export const POLICY_VERSION = '2026-11-23';
+/** data_use is required to use the app; photos_on_streams is optional. */
+export const CONSENT_SCOPES = ['data_use', 'photos_on_streams'] as const;
+export type ConsentScope = (typeof CONSENT_SCOPES)[number];
+
+export const consentSchema = z.object({
+  policyVersion: z.literal(POLICY_VERSION, { error: 'Please review the latest privacy policy' }),
+  scopes: z
+    .array(z.enum(CONSENT_SCOPES))
+    .refine((s) => s.includes('data_use'), 'Consent to data use is required'),
+});
+
 export interface MeResponse {
   user: { id: string; email: string; name: string; avatarUrl: string | null };
   /** Global roles have tournamentId null. */
   roles: { role: Role; tournamentId: string | null }[];
   player: { id: string; displayName: string } | null;
+  /** required = true until the user consents to data use under the current policy version. */
+  consent: { policyVersion: string; scopes: ConsentScope[]; required: boolean };
 }

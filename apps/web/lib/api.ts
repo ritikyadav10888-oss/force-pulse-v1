@@ -2,6 +2,8 @@ export class ApiError extends Error {
   constructor(
     public readonly status: number,
     message: string,
+    /** Machine-readable reason from the API, e.g. "consent_required". */
+    public readonly code?: string,
   ) {
     super(message);
   }
@@ -31,13 +33,17 @@ export async function api<T = unknown>(path: string, init?: RequestInit): Promis
   if (!res.ok) {
     const body = (await res.json().catch(() => ({}))) as {
       message?: string | string[];
+      code?: string;
       issues?: { path: string; message: string }[];
     };
     const msg =
       body.issues?.map((i) => `${i.path}: ${i.message}`).join(', ') ??
       (Array.isArray(body.message) ? body.message.join(', ') : body.message) ??
       res.statusText;
-    throw new ApiError(res.status, msg);
+    if (body.code === 'consent_required' && typeof window !== 'undefined') {
+      window.location.assign('/consent');
+    }
+    throw new ApiError(res.status, msg, body.code);
   }
   return (res.status === 204 ? undefined : await res.json()) as T;
 }
