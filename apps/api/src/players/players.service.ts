@@ -175,12 +175,12 @@ export class PlayersService {
   async addSportProfile(userId: string, playerId: string, sportCode: string, attributes: unknown) {
     await this.ownPlayer(userId, playerId);
     const { sportId, version, pack } = await this.currentPack(sportCode);
-    const data = this.validate(pack, attributes);
     const exists = await this.prisma.playerSportProfile.findUnique({
       where: { playerId_sportId: { playerId, sportId } },
     });
     if (exists)
       throw new ConflictException('You already have a profile for this sport; edit it instead');
+    const data = this.validate(pack, attributes);
     return this.prisma.playerSportProfile.create({
       data: { playerId, sportId, rulePackVersion: version, attributesJson: data },
     });
