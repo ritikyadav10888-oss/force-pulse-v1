@@ -6,7 +6,7 @@ set -euo pipefail
 
 PROJECT_ID=${PROJECT_ID:?set PROJECT_ID}
 REGION=${REGION:-asia-south1}
-GITHUB_REPO=${GITHUB_REPO:-ritikyadav10888-oss/force-pulse}
+GITHUB_REPO=${GITHUB_REPO:-ritikyadav10888-oss/force-pulse-v1}
 SQL_INSTANCE=force-pulse-staging
 
 gcloud config set project "$PROJECT_ID"

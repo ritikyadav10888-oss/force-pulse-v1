@@ -24,4 +24,4 @@ One line per decision, newest last.
 - 2026-11-23 — Deploy workflow triggers on `workflow_run` of CI success on `main`; skipped until GCP repo variables exist.
 - 2026-11-23 — Next.js `output: 'standalone'` for a small web image; `NEXT_PUBLIC_*` passed as Docker build args.
 - 2026-11-23 — Milestone 7 backup drill becomes a Cloud SQL clone/restore (was: Neon branch restore).
-- 2026-11-23 — GitHub repo is public (owner: ritikyadav10888-oss); deploy config uses repo variables, the only secret (DB URL) lives in Secret Manager.
+- 2026-11-23 — GitHub repo is public (ritikyadav10888-oss/force-pulse-v1); deploy config uses repo variables, the only secret (DB URL) lives in Secret Manager.
