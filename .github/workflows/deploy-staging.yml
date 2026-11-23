@@ -55,11 +55,14 @@ jobs:
       - name: Deploy API
         run: |
           # Empty on the very first deploy (web not created yet); re-run once after.
-          WEB_URL=$(gcloud run services describe fp-web --format 'value(status.url)' 2>/dev/null || true)
+          # Cloud Run serves each service on two URLs; allow both. Empty on the very first deploy; re-run once after.
+          WEB_URLS=$(gcloud run services describe fp-web --format json 2>/dev/null \
+            | jq -r '.metadata.annotations["run.googleapis.com/urls"] // "[]" | fromjson | join(",")' || true)
+          # ^@^ switches gcloud's list delimiter so CORS_ORIGIN can contain commas.
           gcloud run deploy fp-api --image "$AR/api:$SHA" \
             --service-account "$RUNTIME_SA" --add-cloudsql-instances "$SQL" \
             --set-secrets DATABASE_URL=database-url:latest \
-            --set-env-vars "NODE_ENV=production,SENTRY_ENVIRONMENT=staging,CORS_ORIGIN=$WEB_URL,SENTRY_DSN=${{ vars.API_SENTRY_DSN }}" \
+            --set-env-vars "^@^NODE_ENV=production@SENTRY_ENVIRONMENT=staging@CORS_ORIGIN=$WEB_URLS@SENTRY_DSN=${{ vars.API_SENTRY_DSN }}" \
             --allow-unauthenticated --min-instances 0 --max-instances 2
           echo "API_URL=$(gcloud run services describe fp-api --format 'value(status.url)')" >> "$GITHUB_ENV"
 
