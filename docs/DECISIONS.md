@@ -38,3 +38,8 @@ One line per decision, newest last.
 - 2026-11-23 — Seed (sports, packs, demo event + 2 open tournaments) runs after migrations in the `fp-migrate` Cloud Run Job on every deploy; idempotent.
 - 2026-11-23 — Registration: rejected registrations can be resubmitted (back to pending); gender rule and age range checked against the event start date.
 - 2026-11-23 — Walking-skeleton web UI is plain Tailwind; shadcn/ui and React Hook Form arrive with the profile wizard (Milestone 4).
+- 2026-11-23 — Consent is a separate step after the first Google sign-in (and again whenever `POLICY_VERSION` is bumped), not a checkbox on the sign-in page, so returning users aren't asked every time. One `Consent` row per scope; `data_use` required, `photos_on_streams` optional.
+- 2026-11-23 — Consent is enforced server-side by a global `ConsentGuard` (403 `consent_required`); only `GET /me`, `POST /me/consent` and public routes work before it. The web redirects to `/consent` on that code.
+- 2026-11-23 — Rate limits with `@nestjs/throttler`, per client IP: 300/min on every route, 10/min on `/auth/*` (env `RATE_LIMIT`, `AUTH_RATE_LIMIT`). In-memory per instance (max 2 instances on staging).
+- 2026-11-23 — Client IP for rate limiting = first `X-Forwarded-For` entry (Cloud Run sets it; the Next proxy passes it through). Spoofable; replace with Cloud Armor on a load balancer before public launch.
+- 2026-11-23 — Privacy policy page is placeholder wording; founder (and ideally legal) to review before launch.

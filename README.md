@@ -55,6 +55,8 @@ Never commit real values. `.env` / `.env.local` are git-ignored.
 | `JWT_SECRET`         | yes      | 32+ random chars for signing access tokens. Staging: Secret Manager `jwt-secret`. |
 | `GOOGLE_CLIENT_ID`   | yes      | OAuth Web client id; ID tokens must be minted for it. Staging: repo variable.     |
 | `SUPER_ADMIN_EMAILS` | no       | Comma-separated Google-verified emails that get `super_admin` on sign-in.         |
+| `RATE_LIMIT`         | no       | Requests per minute per IP on any route. Default `300`.                           |
+| `AUTH_RATE_LIMIT`    | no       | Requests per minute per IP on `/auth/*`. Default `10`.                            |
 | `SENTRY_ENVIRONMENT` | no       | `development` / `staging` / `production`.                                         |
 
 ### Web (`apps/web/.env.local`; on Cloud Run baked in at image build)
