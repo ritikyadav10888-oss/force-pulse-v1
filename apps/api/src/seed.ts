@@ -1,4 +1,5 @@
-// Idempotent seed: sports + published rule packs + a demo event with two open tournaments.
+// Idempotent seed: sports + published rule packs. Tournaments are created by their owners;
+// the demo event, owners and sample players arrive with the Milestone 7 demo seed.
 // Runs after migrations on every deploy (Cloud Run Job) and via `pnpm db:seed` locally.
 import './instrument';
 import { isDeepStrictEqual } from 'node:util';
@@ -37,42 +38,6 @@ export async function seed(prisma: PrismaClient) {
         `Rule pack ${pack.id}@${pack.version} differs from the published copy; publish a new version.`,
       );
     }
-  }
-
-  const eventName = 'Force Pulse Demo Fest';
-  const event =
-    (await prisma.event.findFirst({ where: { name: eventName } })) ??
-    (await prisma.event.create({
-      data: {
-        name: eventName,
-        orgName: 'Force Pulse',
-        startDate: new Date('2027-01-15'),
-        endDate: new Date('2027-01-25'),
-      },
-    }));
-
-  for (const t of [
-    { sport: 'cricket', name: 'Demo Cricket Cup', category: "Men's open" },
-    { sport: 'football', name: 'Demo Football League', category: 'Open' },
-  ]) {
-    if (await prisma.tournament.findFirst({ where: { eventId: event.id, name: t.name } })) continue;
-    const sportId = sportIds.get(t.sport)!;
-    const latest = latestPacks(packs).find((p) => p.id === t.sport)!;
-    const rulePack = await prisma.rulePack.findUniqueOrThrow({
-      where: { sportId_version: { sportId, version: latest.version } },
-    });
-    await prisma.tournament.create({
-      data: {
-        eventId: event.id,
-        sportId,
-        rulePackId: rulePack.id,
-        name: t.name,
-        category: t.category,
-        entryType: 'individual',
-        registrationOpen: true,
-        genderRule: 'open',
-      },
-    });
   }
 }
 

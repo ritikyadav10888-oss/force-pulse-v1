@@ -27,7 +27,7 @@ One line per decision, newest last.
 - 2026-11-23 — Browser → API goes through the web app's same-origin `/api/*` rewrite, so session cookies are first-party (`run.app` is a public suffix; cross-site cookies would be blocked). `API_URL` is a web build arg.
 - 2026-11-23 — Sessions: access JWT (HS256, 15 min, `@nestjs/jwt`) and opaque refresh token (7 days, sha256-hashed in DB, rotated on every refresh; reuse of a rotated token revokes all the user's sessions) in httpOnly, SameSite=Lax cookies; Secure in production. Bearer header also accepted for API clients.
 - 2026-11-23 — Global `AuthGuard` (opt out with `@Public()`); `@TournamentRoles([...], 'tournament'|'registration')` checks Membership for the tournament behind `:id`; `super_admin` (Membership with null tournament) passes everywhere.
-- 2026-11-23 — First admins: `SUPER_ADMIN_EMAILS`, granted only when Google says the email is verified. Accounts still link only by `google_sub`.
+- 2026-11-23 — (Superseded below.) First admins: `SUPER_ADMIN_EMAILS`, granted only when Google says the email is verified.
 - 2026-11-23 — Google sign-in via the Google Identity Services script (no npm package); ID token verified server-side with `google-auth-library` behind an `AuthProvider` interface.
 - 2026-11-23 — Validation: tiny `ZodPipe` + Swagger schemas generated from the same Zod schemas (`z.toJSONSchema`, OpenAPI 3.0 target). No `nestjs-zod`.
 - 2026-11-23 — Prisma: tables snake_case plural (`@@map`), columns camelCase; UUID ids. Init migration generated with `migrate diff --from-empty` (no local DB yet).
@@ -43,3 +43,21 @@ One line per decision, newest last.
 - 2026-11-23 — Rate limits with `@nestjs/throttler`, per client IP: 300/min on every route, 10/min on `/auth/*` (env `RATE_LIMIT`, `AUTH_RATE_LIMIT`). In-memory per instance (max 2 instances on staging).
 - 2026-11-23 — Client IP for rate limiting = first `X-Forwarded-For` entry (Cloud Run sets it; the Next proxy passes it through). Spoofable; replace with Cloud Armor on a load balancer before public launch.
 - 2026-11-23 — Privacy policy page is placeholder wording; founder (and ideally legal) to review before launch.
+- 2026-11-23 — **Role model v2 (founder's plan change):** tournament roles are `owner`, `co_organizer`, `team_owner`, `player`. Any signed-in user creates events and tournaments; creating a tournament adds the creator as `owner` in the same transaction. No admin approval.
+- 2026-11-23 — Super admin is `User.isSuperAdmin` (set from `SUPER_ADMIN_EMAILS` for Google-verified emails) and has **no** tournament powers; the old global-membership bypass is gone.
+- 2026-11-23 — Exactly one owner per tournament: partial unique index `memberships_one_owner_per_tournament` in raw SQL (Prisma 6 can't express it); the CI drift check allows exactly that index.
+- 2026-11-23 — Permissions are an explicit map in shared (`PERMISSIONS`, `can()`), used by the API guard `@TournamentPermission(...)` and by the web to show/hide actions. Co-organizers can't change modules, co-organizers, ownership or archive.
+- 2026-11-23 — `Event.createdById` added (not in the spec's Event fields): only the event's creator adds tournaments to it.
+- 2026-11-23 — New tournaments start with registration closed; turning the registration module off also closes it; registering is refused while the module is off.
+- 2026-11-23 — Approving a registration adds a `player` membership (rejecting removes it), so "My tournaments" can show "Owner · Player". Self-approval is allowed, flagged `selfApproved`, badged and audit-logged as `registration.self_approved`.
+- 2026-11-23 — `/auth/test-login {email}` exists only when `NODE_ENV` is `development` or `test`: the controller is registered conditionally and the handler re-checks; a test boots the app in production mode and expects 404.
+- 2026-11-23 — Migration `role_model` deletes all events/tournaments/registrations/memberships created before ownership existed (only staging demo data) so every tournament has an owner. Staging seed is now sports + rule packs only.
+- 2026-11-23 — Infra stays on GCP (Cloud Run, Cloud SQL, Cloud Storage) even though the revised prompt still names Neon/Vercel/Render/R2.
+- 2026-11-23 — Files on Google Cloud Storage (founder's choice over R2/S3): private bucket `<project>-files`, uniform access, public access blocked. Browser uploads with a 5-minute V4 signed PUT that pins Content-Type and a 5 MB `x-goog-content-length-range`; the API then checks the object (prefix, size, type) before using it. Signing uses the runtime account's own identity (signBlob), no key files.
+- 2026-11-23 — `FileStorage` abstract class with a GCS implementation and an in-memory fake for tests; the bucket client is lazy so the API boots without `FILES_BUCKET`.
+- 2026-11-23 — Photos are cropped to a 512×512 JPEG in the browser (`react-easy-crop` + canvas) before upload; photo read links last 1 hour (ID documents will be 5 minutes).
+- 2026-11-23 — Dependencies approved for M4: `react-easy-crop`, `@hookform/resolvers`, `@google-cloud/storage`, shadcn/ui (base-nova style: Base UI, `cn`, cva, lucide). `cn` is shadcn's own package (same npm maintainer).
+- 2026-11-23 — Sport forms are generated from the pack by one `DynamicField` component that switches on field _type_ only; validation is the same `attributesSchema(pack)` on web and API.
+- 2026-11-23 — Sport-profile edits re-validate against the sport's current pack and store that version. If the player is approved in a tournament of that sport, the edit sets the profile to `pending_review`, moves those registrations back to pending (removing the player membership) and audit-logs it; re-approval clears it.
+- 2026-11-23 — Guardian details are required for under-18s when saving contact & safety and before registering (not at step 1, so a minor's DOB can be saved first).
+- 2026-11-23 — Wizard steps save independently (`/profile/setup?step=1..4`); "save and continue later" is just leaving. ID upload in step 4 arrives with Milestone 5.

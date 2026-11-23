@@ -1,13 +1,7 @@
 import { z } from 'zod';
 
-export const ROLES = [
-  'super_admin',
-  'organizer',
-  'auctioneer',
-  'team_owner',
-  'player',
-  'scorer',
-] as const;
+/** Per-tournament roles. Super admin is a user flag, not a role, and has no tournament powers. */
+export const ROLES = ['owner', 'co_organizer', 'team_owner', 'player'] as const;
 export type Role = (typeof ROLES)[number];
 
 export const GENDERS = ['male', 'female', 'other'] as const;
@@ -35,7 +29,79 @@ export const createPlayerSchema = z.object({
 });
 export type CreatePlayer = z.infer<typeof createPlayerSchema>;
 
-export const updatePlayerSchema = createPlayerSchema.partial();
+const phone = z
+  .string()
+  .trim()
+  .regex(/^\+?[0-9 ()-]{7,20}$/, 'Phone number');
+
+export const contactPersonSchema = z.object({
+  name: z.string().trim().min(2).max(80),
+  phone,
+  relation: z.string().trim().min(2).max(40),
+});
+export type ContactPerson = z.infer<typeof contactPersonSchema>;
+
+/** Step 1 + step 2 of the wizard; every field optional so each step saves on its own. */
+export const updatePlayerSchema = createPlayerSchema.partial().extend({
+  state: z.string().trim().min(2).max(80).optional(),
+  emergencyContact: contactPersonSchema.optional(),
+  medicalNotes: z.string().trim().max(1000).optional(),
+  /** Required for players under 18; null clears it. */
+  guardian: contactPersonSchema.nullable().optional(),
+});
+export type UpdatePlayer = z.infer<typeof updatePlayerSchema>;
+
+/** Age in whole years on `on` (default today), from an ISO date or Date. */
+export function ageOn(dob: string | Date, on: Date = new Date()) {
+  const d = typeof dob === 'string' ? new Date(dob) : dob;
+  const age = on.getUTCFullYear() - d.getUTCFullYear();
+  const beforeBirthday =
+    on.getUTCMonth() < d.getUTCMonth() ||
+    (on.getUTCMonth() === d.getUTCMonth() && on.getUTCDate() < d.getUTCDate());
+  return beforeBirthday ? age - 1 : age;
+}
+export const isMinor = (dob: string | Date | null | undefined) => !!dob && ageOn(dob) < 18;
+
+/** Sport-profile body; the attributes are checked against the sport's current rule pack on the server. */
+export const sportProfileSchema = z.object({ attributes: z.record(z.string(), z.unknown()) });
+
+export const PHOTO_TYPES = ['image/jpeg', 'image/png'] as const;
+export const MAX_UPLOAD_BYTES = 5 * 1024 * 1024;
+export const photoUploadRequestSchema = z.object({
+  contentType: z.enum(PHOTO_TYPES),
+  size: z.number().int().positive().max(MAX_UPLOAD_BYTES, 'Max 5 MB'),
+});
+export const confirmUploadSchema = z.object({ key: z.string().min(1).max(300) });
+
+export interface UploadTicket {
+  key: string;
+  uploadUrl: string;
+  /** Send these headers with the PUT, or storage rejects the upload. */
+  headers: Record<string, string>;
+  expiresAt: string;
+}
+
+export interface SportProfileView {
+  sport: { code: string; name: string };
+  rulePackVersion: string;
+  attributes: Record<string, unknown>;
+  status: 'active' | 'pending_review';
+}
+
+export interface MyPlayerProfile {
+  id: string;
+  displayName: string;
+  dob: string | null;
+  gender: (typeof GENDERS)[number] | null;
+  city: string | null;
+  state: string | null;
+  phone: string | null;
+  emergencyContact: ContactPerson | null;
+  medicalNotes: string | null;
+  guardian: ContactPerson | null;
+  photoUrl: string | null;
+  sportProfiles: SportProfileView[];
+}
 
 export const reviewRegistrationSchema = z
   .object({
@@ -65,10 +131,88 @@ export const consentSchema = z.object({
 });
 
 export interface MeResponse {
-  user: { id: string; email: string; name: string; avatarUrl: string | null };
-  /** Global roles have tournamentId null. */
-  roles: { role: Role; tournamentId: string | null }[];
+  user: {
+    id: string;
+    email: string;
+    name: string;
+    avatarUrl: string | null;
+    isSuperAdmin: boolean;
+  };
+  roles: { role: Role; tournamentId: string }[];
   player: { id: string; displayName: string } | null;
   /** required = true until the user consents to data use under the current policy version. */
   consent: { policyVersion: string; scopes: ConsentScope[]; required: boolean };
+}
+
+export const MODULES = ['registration', 'auction', 'scoring', 'fantasy'] as const;
+export type Module = (typeof MODULES)[number];
+export const modulesSchema = z.object({
+  registration: z.boolean(),
+  auction: z.boolean(),
+  scoring: z.boolean(),
+  fantasy: z.boolean(),
+});
+export type Modules = z.infer<typeof modulesSchema>;
+
+export const createEventSchema = z
+  .object({
+    name: z.string().trim().min(3).max(100),
+    orgName: z.string().trim().min(2).max(100),
+    startDate: isoDate,
+    endDate: isoDate,
+  })
+  .refine((e) => e.endDate >= e.startDate, {
+    message: 'End date is before start date',
+    path: ['endDate'],
+  });
+export type CreateEvent = z.infer<typeof createEventSchema>;
+
+export const createTournamentSchema = z
+  .object({
+    sportCode: z.string().regex(/^[a-z][a-z0-9_]*$/),
+    name: z.string().trim().min(3).max(100),
+    category: z.string().trim().min(2).max(60),
+    entryType: z.enum(['team', 'individual']),
+    genderRule: z.enum(['open', 'men', 'women', 'mixed']).default('open'),
+    ageMin: z.number().int().min(5).max(100).optional(),
+    ageMax: z.number().int().min(5).max(100).optional(),
+    registrationDeadline: z.iso.datetime({ offset: true }).optional(),
+    modules: modulesSchema,
+  })
+  .refine((t) => t.ageMin === undefined || t.ageMax === undefined || t.ageMin <= t.ageMax, {
+    message: 'Minimum age is above maximum age',
+    path: ['ageMax'],
+  });
+export type CreateTournament = z.infer<typeof createTournamentSchema>;
+
+export const toggleRegistrationSchema = z.object({ open: z.boolean() });
+
+/**
+ * Who may do what inside a tournament. "Organizer" = owner or co-organizer.
+ * Co-organizers help run things but can't change modules, co-organizers, ownership or archive.
+ */
+export const PERMISSIONS = {
+  'registrations.view': ['owner', 'co_organizer'],
+  'registrations.review': ['owner', 'co_organizer'],
+  'registration.toggle': ['owner', 'co_organizer'],
+  'players.manage': ['owner', 'co_organizer'],
+  'modules.update': ['owner'],
+  'coOrganizers.manage': ['owner'],
+  'ownership.transfer': ['owner'],
+  'tournament.archive': ['owner'],
+} as const satisfies Record<string, readonly Role[]>;
+export type Permission = keyof typeof PERMISSIONS;
+
+export const can = (roles: readonly Role[], permission: Permission) =>
+  roles.some((r) => (PERMISSIONS[permission] as readonly Role[]).includes(r));
+
+export interface MyTournament {
+  id: string;
+  name: string;
+  category: string;
+  registrationOpen: boolean;
+  modules: Modules;
+  sport: { code: string; name: string };
+  event: { id: string; name: string };
+  roles: Role[];
 }

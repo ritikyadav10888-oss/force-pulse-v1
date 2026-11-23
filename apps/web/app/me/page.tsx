@@ -1,10 +1,11 @@
 'use client';
-import { createPlayerSchema, GENDERS, type RegistrationStatus } from '@force-pulse/shared';
+import type { RegistrationStatus } from '@force-pulse/shared';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { type FormEvent, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { api, post } from '@/lib/api';
-import { isAdminOrOrganizer, useMe } from '@/lib/use-me';
+import { MyTournaments } from '@/components/my-tournaments';
+import { useMe } from '@/lib/use-me';
 
 interface MyRegistration {
   id: string;
@@ -21,29 +22,13 @@ const badge: Record<RegistrationStatus, string> = {
 
 export default function MePage() {
   const router = useRouter();
-  const { me, reload } = useMe();
+  const { me } = useMe();
   const [regs, setRegs] = useState<MyRegistration[]>([]);
   const [error, setError] = useState('');
 
   useEffect(() => {
     if (me?.player) void api<MyRegistration[]>('/me/registrations').then(setRegs);
   }, [me]);
-
-  async function createProfile(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    const form = Object.fromEntries(new FormData(e.currentTarget));
-    const parsed = createPlayerSchema.safeParse({ ...form, phone: form.phone || undefined });
-    if (!parsed.success)
-      return setError(
-        parsed.error.issues.map((i) => `${String(i.path[0])}: ${i.message}`).join(', '),
-      );
-    try {
-      await post('/players', parsed.data);
-      await reload();
-    } catch (err) {
-      setError((err as Error).message);
-    }
-  }
 
   async function resubmit(tournamentId: string) {
     await post(`/tournaments/${tournamentId}/registrations`).catch((e: Error) =>
@@ -66,55 +51,27 @@ export default function MePage() {
         </button>
       </header>
 
-      {isAdminOrOrganizer(me) && (
-        <Link href="/organizer" className="rounded bg-neutral-900 px-4 py-3 text-center text-white">
-          Organizer: approval queue
-        </Link>
-      )}
+      <MyTournaments />
 
       {!me.player ? (
-        <form onSubmit={createProfile} className="flex flex-col gap-3">
-          <h2 className="text-lg font-semibold">Create your player profile</h2>
-          <label className="flex flex-col gap-1">
-            Name
-            <input
-              name="displayName"
-              required
-              defaultValue={me.user.name}
-              className="rounded border p-2"
-            />
-          </label>
-          <label className="flex flex-col gap-1">
-            Date of birth
-            <input name="dob" type="date" required className="rounded border p-2" />
-          </label>
-          <label className="flex flex-col gap-1">
-            Gender
-            <select name="gender" required className="rounded border p-2">
-              {GENDERS.map((g) => (
-                <option key={g} value={g}>
-                  {g}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="flex flex-col gap-1">
-            City
-            <input name="city" required className="rounded border p-2" />
-          </label>
-          <label className="flex flex-col gap-1">
-            Phone (optional)
-            <input name="phone" type="tel" className="rounded border p-2" />
-          </label>
-          {error && (
-            <p role="alert" className="text-red-600">
-              {error}
-            </p>
-          )}
-          <button className="rounded bg-blue-600 px-4 py-3 text-white">Save profile</button>
-        </form>
+        <section className="flex flex-col gap-3 rounded-lg border p-4">
+          <h2 className="text-lg font-semibold">Set up your player profile</h2>
+          <p className="text-sm text-muted-foreground">
+            Four short steps: about you, contact &amp; safety, your sports, review. You can stop and
+            continue later.
+          </p>
+          <Link
+            href="/profile/setup"
+            className="rounded bg-blue-600 px-4 py-3 text-center text-white"
+          >
+            Start
+          </Link>
+        </section>
       ) : (
         <section className="flex flex-col gap-3">
+          <Link href="/profile/setup" className="rounded border px-4 py-3 text-center">
+            Edit profile &amp; sports
+          </Link>
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold">My registrations</h2>
             <Link href="/tournaments" className="text-blue-700 underline">

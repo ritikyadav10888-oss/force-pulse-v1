@@ -26,7 +26,8 @@ function valueSchema(field: Field): z.ZodType {
   }
 }
 
-const isVisible = (field: Field, values: Record<string, unknown>) => {
+/** Whether a field shows, given current answers (its showIf condition). Used by forms and validation. */
+export const isVisible = (field: Field, values: Record<string, unknown>) => {
   if (!field.showIf) return true;
   const current = values[field.showIf.field];
   const picked = Array.isArray(current) ? current : [current];
