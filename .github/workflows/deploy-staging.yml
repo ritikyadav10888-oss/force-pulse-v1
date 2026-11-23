@@ -61,7 +61,7 @@ jobs:
           gcloud run deploy fp-api --image "$AR/api:$SHA" \
             --service-account "$RUNTIME_SA" --add-cloudsql-instances "$SQL" \
             --set-secrets DATABASE_URL=database-url:latest,JWT_SECRET=jwt-secret:latest \
-            --set-env-vars "^~^NODE_ENV=production~SENTRY_ENVIRONMENT=staging~CORS_ORIGIN=$WEB_URLS~SENTRY_DSN=${{ vars.API_SENTRY_DSN }}~GOOGLE_CLIENT_ID=${{ vars.GOOGLE_CLIENT_ID }}~SUPER_ADMIN_EMAILS=${{ vars.SUPER_ADMIN_EMAILS }}" \
+            --set-env-vars "^~^NODE_ENV=production~SENTRY_ENVIRONMENT=staging~CORS_ORIGIN=$WEB_URLS~SENTRY_DSN=${{ vars.API_SENTRY_DSN }}~GOOGLE_CLIENT_ID=${{ vars.GOOGLE_CLIENT_ID }}~SUPER_ADMIN_EMAILS=${{ vars.SUPER_ADMIN_EMAILS }}~FILES_BUCKET=${{ vars.FILES_BUCKET }}" \
             --allow-unauthenticated --min-instances 0 --max-instances 2
           echo "API_URL=$(gcloud run services describe fp-api --format 'value(status.url)')" >> "$GITHUB_ENV"
 
@@ -72,8 +72,9 @@ jobs:
             --build-arg NEXT_PUBLIC_GOOGLE_CLIENT_ID="${{ vars.GOOGLE_CLIENT_ID }}" \
             --build-arg NEXT_PUBLIC_SENTRY_DSN="${{ vars.WEB_SENTRY_DSN }}" .
           docker push "$AR/web:$SHA"
+          # API_URL at runtime too: server-rendered pages (public player page) call the API directly.
           gcloud run deploy fp-web --image "$AR/web:$SHA" \
-            --service-account "$RUNTIME_SA" \
+            --service-account "$RUNTIME_SA" --set-env-vars "API_URL=$API_URL" \
             --allow-unauthenticated --min-instances 0 --max-instances 2
           echo "WEB_URL=$(gcloud run services describe fp-web --format 'value(status.url)')" >> "$GITHUB_ENV"
 

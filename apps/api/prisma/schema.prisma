@@ -10,13 +10,24 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+/// Per-tournament roles. Exactly one owner per tournament (partial unique index in SQL).
+/// The owner or a co-organizer runs the auction and scoring; there are no separate roles for them.
 enum Role {
-  super_admin
-  organizer
-  auctioneer
+  owner
+  co_organizer
   team_owner
   player
-  scorer
+}
+
+enum RegistrationSource {
+  self_registered
+  added_by_organizer
+  invite_link
+}
+
+enum InviteKind {
+  co_organizer
+  player
 }
 
 enum ScoringModel {
@@ -65,19 +76,25 @@ enum DocumentType {
 }
 
 model User {
-  id        String    @id @default(uuid()) @db.Uuid
+  id           String    @id @default(uuid()) @db.Uuid
   /// Accounts are linked by Google subject, never by email.
-  googleSub String    @unique
-  email     String
-  name      String
-  avatarUrl String?
-  createdAt DateTime  @default(now())
-  deletedAt DateTime?
+  googleSub    String    @unique
+  email        String
+  name         String
+  avatarUrl    String?
+  /// Platform operator (rule packs, abuse, suspensions). Grants no tournament powers.
+  isSuperAdmin Boolean   @default(false)
+  createdAt    DateTime  @default(now())
+  deletedAt    DateTime?
 
-  refreshTokens RefreshToken[]
-  consents      Consent[]
-  memberships   Membership[]
-  player        Player?
+  refreshTokens      RefreshToken[]
+  consents           Consent[]
+  memberships        Membership[]   @relation("member")
+  invitedMembers     Membership[]   @relation("inviter")
+  player             Player?
+  createdEvents      Event[]
+  createdTournaments Tournament[]
+  createdInvites     Invite[]
 
   @@map("users")
 }
@@ -111,16 +128,18 @@ model Consent {
   @@map("consents")
 }
 
+/// One person can hold several roles in a tournament (e.g. owner and player).
 model Membership {
   id           String   @id @default(uuid()) @db.Uuid
   userId       String   @db.Uuid
-  /// null = global role (super_admin).
-  tournamentId String?  @db.Uuid
+  tournamentId String   @db.Uuid
   role         Role
+  invitedById  String?  @db.Uuid
   createdAt    DateTime @default(now())
 
-  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  tournament Tournament? @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  user       User       @relation("member", fields: [userId], references: [id], onDelete: Cascade)
+  invitedBy  User?      @relation("inviter", fields: [invitedById], references: [id], onDelete: SetNull)
+  tournament Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
 
   @@unique([userId, tournamentId, role])
   @@index([tournamentId, role])
@@ -158,13 +177,16 @@ model RulePack {
 }
 
 model Event {
-  id        String   @id @default(uuid()) @db.Uuid
-  orgName   String
-  name      String
-  startDate DateTime @db.Date
-  endDate   DateTime @db.Date
-  createdAt DateTime @default(now())
+  id          String   @id @default(uuid()) @db.Uuid
+  orgName     String
+  name        String
+  startDate   DateTime @db.Date
+  endDate     DateTime @db.Date
+  /// The creator manages the event and adds its tournaments.
+  createdById String   @db.Uuid
+  createdAt   DateTime @default(now())
 
+  createdBy   User         @relation(fields: [createdById], references: [id])
   tournaments Tournament[]
 
   @@map("events")
@@ -185,9 +207,14 @@ model Tournament {
   ageMin               Int?
   ageMax               Int?
   genderRule           GenderRule @default(open)
+  createdById          String     @db.Uuid
+  /// { registration, auction, scoring, fantasy }: which modules this tournament uses.
+  modulesJson          Json
   settingsJson         Json       @default("{}")
   createdAt            DateTime   @default(now())
 
+  createdBy     User           @relation(fields: [createdById], references: [id])
+  invites       Invite[]
   event         Event          @relation(fields: [eventId], references: [id])
   sport         Sport          @relation(fields: [sportId], references: [id])
   rulePack      RulePack       @relation(fields: [rulePackId], references: [id])
@@ -272,9 +299,12 @@ model Registration {
   playerId     String             @db.Uuid
   tournamentId String             @db.Uuid
   status       RegistrationStatus @default(pending)
+  source       RegistrationSource @default(self_registered)
   reason       String?
   reviewedById String?            @db.Uuid
   reviewedAt   DateTime?
+  /// True when the reviewer approved their own registration (owner who also plays).
+  selfApproved Boolean            @default(false)
   createdAt    DateTime           @default(now())
   updatedAt    DateTime           @updatedAt
 
@@ -284,6 +314,27 @@ model Registration {
   @@unique([playerId, tournamentId])
   @@index([tournamentId, status])
   @@map("registrations")
+}
+
+/// Join links: co-organizer invites (owner only) and player join links (no approval step).
+model Invite {
+  id           String     @id @default(uuid()) @db.Uuid
+  tournamentId String     @db.Uuid
+  kind         InviteKind
+  /// sha256 of the token in the link; the token itself is never stored.
+  tokenHash    String     @unique
+  createdById  String     @db.Uuid
+  expiresAt    DateTime
+  usedCount    Int        @default(0)
+  /// null = unlimited until expiry.
+  maxUses      Int?
+  createdAt    DateTime   @default(now())
+
+  tournament Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  createdBy  User       @relation(fields: [createdById], references: [id])
+
+  @@index([tournamentId])
+  @@map("invites")
 }
 
 model AuditLog {

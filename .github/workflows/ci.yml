@@ -40,6 +40,11 @@ jobs:
         working-directory: apps/api
         run: |
           pnpm exec prisma migrate deploy
-          pnpm exec prisma migrate diff --from-url "$DATABASE_URL" --to-schema-datamodel prisma/schema.prisma --exit-code
+          pnpm exec prisma migrate diff --from-url "$DATABASE_URL" --to-schema-datamodel prisma/schema.prisma --script > "$RUNNER_TEMP/drift.sql"
+          # Prisma's schema can't express the partial "one owner per tournament" index, so its diff
+          # wants to drop it. Allow exactly that; any other difference is real drift.
+          if grep -vE '^\s*$|^--|DROP INDEX "memberships_one_owner_per_tournament"' "$RUNNER_TEMP/drift.sql"; then
+            echo "::error::Database schema drifted from prisma/schema.prisma"; exit 1
+          fi
       - run: pnpm test
       - run: pnpm build

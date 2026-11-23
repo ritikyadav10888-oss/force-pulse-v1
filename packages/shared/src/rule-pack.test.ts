@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { can } from './api';
 import { attributesSchema } from './attributes';
 import { rulePackSchema } from './rule-pack';
 
@@ -108,5 +109,57 @@ describe('attributesSchema', () => {
         highlightVideo: 'javascript:alert(1)',
       }).success,
     ).toBe(false);
+  });
+});
+
+describe('permission map', () => {
+  it('lets co-organizers run players but not owner-only actions', () => {
+    expect(can(['co_organizer'], 'registrations.review')).toBe(true);
+    expect(can(['co_organizer'], 'modules.update')).toBe(false);
+    expect(can(['co_organizer'], 'coOrganizers.manage')).toBe(false);
+    expect(can(['co_organizer'], 'ownership.transfer')).toBe(false);
+    expect(can(['owner'], 'ownership.transfer')).toBe(true);
+    expect(can(['player', 'team_owner'], 'registrations.view')).toBe(false);
+  });
+});
+
+describe('player helpers', () => {
+  it('computes age and minors on birthdays correctly', async () => {
+    const { ageOn, isMinor } = await import('./api.js');
+    expect(ageOn('2008-06-15', new Date('2026-06-14'))).toBe(17);
+    expect(ageOn('2008-06-15', new Date('2026-06-15'))).toBe(18);
+    expect(isMinor(null)).toBe(false);
+    expect(isMinor('2020-01-01')).toBe(true);
+  });
+});
+
+describe('completeness and age group', () => {
+  it('counts the guardian only for minors and lists what is missing', async () => {
+    const { completeness, ageGroup } = await import('./api.js');
+    const adult = {
+      dob: '1990-01-01',
+      gender: 'male',
+      city: 'Pune',
+      hasPhoto: true,
+      emergencyContact: { name: 'x' },
+      guardian: null,
+      sportCount: 1,
+      documentCount: 0,
+    };
+    expect(completeness(adult)).toEqual({ percent: 80, missing: ['ID document'] });
+    expect(completeness({ ...adult, documentCount: 1 }).percent).toBe(100);
+    const minor = completeness({ ...adult, dob: '2015-01-01', documentCount: 1 });
+    expect(minor).toEqual({ percent: 83, missing: ['Parent or guardian'] });
+    expect(ageGroup('1990-01-01')).toBe('35–44');
+    expect(ageGroup(null)).toBeNull();
+  });
+});
+
+describe('badgesFor', () => {
+  it('uses the first required single-choice field and experience level', async () => {
+    const { badgesFor } = await import('./attributes.js');
+    const pack = rulePackSchema.parse(base);
+    expect(badgesFor(pack, { role: 'b', experienceLevel: 'state' })).toEqual(['b', 'state']);
+    expect(badgesFor(pack, {})).toEqual([]);
   });
 });

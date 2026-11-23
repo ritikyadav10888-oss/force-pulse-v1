@@ -7,7 +7,8 @@ import { AuthGuard } from './auth.guard';
 import { AUTH_PROVIDER, GoogleAuthProvider } from './auth.provider';
 import { AuthService } from './auth.service';
 import { ConsentGuard } from './consent';
-import { TournamentRolesGuard } from './roles.guard';
+import { TournamentPermissionGuard } from './roles.guard';
+import { testLoginEnabled, TestLoginController } from './test-login.controller';
 import { IpThrottlerGuard, throttlerOptions } from './throttle';
 
 @Module({
@@ -26,16 +27,17 @@ import { IpThrottlerGuard, throttlerOptions } from './throttle';
       },
     }),
   ],
-  controllers: [AuthController],
+  // Test-only sign-in is registered only in development/test, so production has no such route.
+  controllers: [AuthController, ...(testLoginEnabled() ? [TestLoginController] : [])],
   providers: [
     AuthService,
-    TournamentRolesGuard,
+    TournamentPermissionGuard,
     { provide: AUTH_PROVIDER, useClass: GoogleAuthProvider },
     // Global guards run in this order: rate limit → authenticate → consent.
     { provide: APP_GUARD, useClass: IpThrottlerGuard },
     { provide: APP_GUARD, useClass: AuthGuard },
     { provide: APP_GUARD, useClass: ConsentGuard },
   ],
-  exports: [TournamentRolesGuard],
+  exports: [TournamentPermissionGuard],
 })
 export class AuthModule {}

@@ -26,7 +26,8 @@ function valueSchema(field: Field): z.ZodType {
   }
 }
 
-const isVisible = (field: Field, values: Record<string, unknown>) => {
+/** Whether a field shows, given current answers (its showIf condition). Used by forms and validation. */
+export const isVisible = (field: Field, values: Record<string, unknown>) => {
   if (!field.showIf) return true;
   const current = values[field.showIf.field];
   const picked = Array.isArray(current) ? current : [current];
@@ -61,4 +62,25 @@ export function attributesSchema(pack: Pick<RulePack, 'registration'>) {
           .map((f) => [f.key, values[f.key]]),
       ),
     );
+}
+
+const labelOf = (field: Field, value: unknown) => {
+  if (field.type !== 'select' || typeof value !== 'string') return null;
+  const o = field.options.find((opt) => optionValue(opt) === value);
+  return o === undefined ? null : typeof o === 'string' ? o : (o.label ?? o.value);
+};
+
+/**
+ * Public role badges, without naming sports: the answer to the pack's first required single-choice
+ * field (e.g. a role or position), then the experience level.
+ */
+export function badgesFor(
+  pack: Pick<RulePack, 'registration'>,
+  attributes: Record<string, unknown>,
+) {
+  const primary = pack.registration.fields.find((f) => f.type === 'select' && f.required);
+  const experience = profileFields(pack).find((f) => f.key === 'experienceLevel');
+  return [primary, experience]
+    .map((f) => f && labelOf(f, attributes[f.key]))
+    .filter((b): b is string => !!b);
 }

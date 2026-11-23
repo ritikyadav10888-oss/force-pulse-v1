@@ -52,3 +52,15 @@ export const post = <T = unknown>(path: string, body?: unknown) =>
   api<T>(path, { method: 'POST', body: body === undefined ? undefined : JSON.stringify(body) });
 export const patch = <T = unknown>(path: string, body: unknown) =>
   api<T>(path, { method: 'PATCH', body: JSON.stringify(body) });
+export const put = <T = unknown>(path: string, body: unknown) =>
+  api<T>(path, { method: 'PUT', body: JSON.stringify(body) });
+export const del = (path: string) => api(path, { method: 'DELETE' });
+
+/** Uploads straight to storage with a signed URL from the API (bypasses our /api proxy). */
+export async function uploadToSignedUrl(
+  ticket: { uploadUrl: string; headers: Record<string, string> },
+  file: Blob,
+) {
+  const res = await fetch(ticket.uploadUrl, { method: 'PUT', headers: ticket.headers, body: file });
+  if (!res.ok) throw new ApiError(res.status, 'Upload failed, please try again');
+}
