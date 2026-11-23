@@ -4,7 +4,8 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { type FormEvent, useEffect, useState } from 'react';
 import { api, post } from '@/lib/api';
-import { isAdminOrOrganizer, useMe } from '@/lib/use-me';
+import { MyTournaments } from '@/components/my-tournaments';
+import { useMe } from '@/lib/use-me';
 
 interface MyRegistration {
   id: string;
@@ -66,11 +67,7 @@ export default function MePage() {
         </button>
       </header>
 
-      {isAdminOrOrganizer(me) && (
-        <Link href="/organizer" className="rounded bg-neutral-900 px-4 py-3 text-center text-white">
-          Organizer: approval queue
-        </Link>
-      )}
+      <MyTournaments />
 
       {!me.player ? (
         <form onSubmit={createProfile} className="flex flex-col gap-3">

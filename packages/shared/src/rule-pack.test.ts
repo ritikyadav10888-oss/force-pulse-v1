@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { can } from './api';
 import { attributesSchema } from './attributes';
 import { rulePackSchema } from './rule-pack';
 
@@ -108,5 +109,16 @@ describe('attributesSchema', () => {
         highlightVideo: 'javascript:alert(1)',
       }).success,
     ).toBe(false);
+  });
+});
+
+describe('permission map', () => {
+  it('lets co-organizers run players but not owner-only actions', () => {
+    expect(can(['co_organizer'], 'registrations.review')).toBe(true);
+    expect(can(['co_organizer'], 'modules.update')).toBe(false);
+    expect(can(['co_organizer'], 'coOrganizers.manage')).toBe(false);
+    expect(can(['co_organizer'], 'ownership.transfer')).toBe(false);
+    expect(can(['owner'], 'ownership.transfer')).toBe(true);
+    expect(can(['player', 'team_owner'], 'registrations.view')).toBe(false);
   });
 });

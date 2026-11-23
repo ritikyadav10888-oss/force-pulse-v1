@@ -4,7 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import type { RegistrationStatus } from '@force-pulse/shared';
+import type { Modules, RegistrationStatus } from '@force-pulse/shared';
 import { audit } from '../common/audit';
 import { isUniqueViolation } from '../common/prisma-errors';
 import { PrismaService } from '../prisma/prisma.service';
@@ -29,6 +29,9 @@ export class RegistrationsService {
     if (!t) throw new NotFoundException('Tournament not found');
     if (!player || player.deletedAt)
       throw new BadRequestException('Create your player profile first');
+    if (!(t.modulesJson as Modules).registration) {
+      throw new BadRequestException('This tournament adds players directly; ask the organizer');
+    }
     if (!t.registrationOpen || (t.registrationDeadline && t.registrationDeadline < new Date())) {
       throw new BadRequestException('Registration is closed');
     }
@@ -87,16 +90,27 @@ export class RegistrationsService {
         reason: true,
         createdAt: true,
         reviewedAt: true,
+        source: true,
+        selfApproved: true,
         player: { select: { id: true, displayName: true, city: true, gender: true } },
       },
       orderBy: { createdAt: 'asc' },
     });
   }
 
+  /**
+   * Approve or reject. Approval makes the player a member (role player) of the tournament; a later
+   * rejection removes that. Reviewing your own registration (owner who also plays) is allowed but
+   * flagged as self-approved and audit-logged.
+   */
   review(actorId: string, id: string, input: { status: 'approved' | 'rejected'; reason?: string }) {
     return this.prisma.$transaction(async (tx) => {
-      const before = await tx.registration.findUnique({ where: { id } });
+      const before = await tx.registration.findUnique({
+        where: { id },
+        include: { player: { select: { userId: true } } },
+      });
       if (!before) throw new NotFoundException();
+      const selfApproved = input.status === 'approved' && before.player.userId === actorId;
       const after = await tx.registration.update({
         where: { id },
         data: {
@@ -104,15 +118,30 @@ export class RegistrationsService {
           reason: input.status === 'rejected' ? input.reason : (input.reason ?? null),
           reviewedById: actorId,
           reviewedAt: new Date(),
+          selfApproved,
         },
       });
+      const membership = {
+        userId: before.player.userId,
+        tournamentId: before.tournamentId,
+        role: 'player' as const,
+      };
+      if (input.status === 'approved') {
+        await tx.membership.upsert({
+          where: { userId_tournamentId_role: membership },
+          create: membership,
+          update: {},
+        });
+      } else {
+        await tx.membership.deleteMany({ where: membership });
+      }
       await audit(tx, {
         actorId,
-        action: `registration.${input.status}`,
+        action: selfApproved ? 'registration.self_approved' : `registration.${input.status}`,
         entity: 'Registration',
         entityId: id,
         before: { status: before.status, reason: before.reason },
-        after: { status: after.status, reason: after.reason },
+        after: { status: after.status, reason: after.reason, selfApproved },
       });
       return after;
     });

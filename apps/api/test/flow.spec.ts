@@ -3,16 +3,15 @@ import { PrismaClient } from '@prisma/client';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { seed } from '../src/seed';
-import { bootApp, cookieHeader, resetDb, signIn } from './helpers';
+import { bootApp, cookieHeader, createTournament, resetDb, signIn } from './helpers';
 
 // Needs DATABASE_URL (CI Postgres service, or `pnpm db:up` locally). Wipes the database.
 const prisma = new PrismaClient();
 let app: INestApplication;
 let http: ReturnType<INestApplication['getHttpServer']>;
-let cricketId: string;
-let footballId: string;
 
 const profile = { displayName: 'Asha Patel', dob: '2000-04-02', gender: 'female', city: 'Pune' };
+const registrationOff = { registration: false, auction: true, scoring: true, fantasy: false };
 
 beforeAll(async () => {
   await resetDb(prisma);
@@ -20,9 +19,6 @@ beforeAll(async () => {
   await seed(prisma); // idempotent
   app = await bootApp();
   http = app.getHttpServer();
-  const ts = await prisma.tournament.findMany({ include: { sport: true } });
-  cricketId = ts.find((t) => t.sport.code === 'cricket')!.id;
-  footballId = ts.find((t) => t.sport.code === 'football')!.id;
 });
 
 afterAll(async () => {
@@ -41,24 +37,88 @@ describe('seed and sports', () => {
     );
     await request(http).get('/sports/curling/rule-packs/current').expect(404);
   });
+});
 
-  it('pins tournaments to a pack version', async () => {
-    const t = await prisma.tournament.findUniqueOrThrow({
-      where: { id: cricketId },
+describe('creator is the owner', () => {
+  it('lets any signed-in user create an event with two tournaments and own them, no approval', async () => {
+    const owner = await signIn(app, { sub: 'creator' });
+    const cricket = await createTournament(app, owner, 'cricket', { open: false });
+    const event = await prisma.event.findUniqueOrThrow({ where: { id: cricket.eventId } });
+    const football = await request(http)
+      .post(`/events/${event.id}/tournaments`)
+      .set('Cookie', owner.cookie)
+      .send({
+        sportCode: 'football',
+        name: 'Football league',
+        category: "Women's open",
+        entryType: 'team',
+        modules: registrationOff,
+      })
+      .expect(201);
+
+    const mine = await request(http).get('/me/tournaments').set('Cookie', owner.cookie).expect(200);
+    expect(mine.body).toHaveLength(2);
+    for (const t of mine.body) expect(t.roles).toEqual(['owner']);
+    expect(mine.body.find((t: { id: string }) => t.id === football.body.id).modules).toEqual(
+      registrationOff,
+    );
+
+    const pinned = await prisma.tournament.findUniqueOrThrow({
+      where: { id: cricket.id },
       include: { rulePack: true },
     });
-    expect(t.rulePack.version).toBe('1.0.0');
+    expect(pinned).toMatchObject({ registrationOpen: false, createdById: owner.userId });
+    expect(pinned.rulePack.version).toBe('1.0.0');
+  });
+
+  it('only the event creator adds tournaments; unknown sports 404', async () => {
+    const owner = await signIn(app, { sub: 'event-maker' });
+    const other = await signIn(app, { sub: 'event-crasher' });
+    const { eventId } = await createTournament(app, owner, 'chess');
+    const body = {
+      sportCode: 'chess',
+      name: 'Blitz',
+      category: 'Open',
+      entryType: 'individual',
+      modules: registrationOff,
+    };
+    await request(http)
+      .post(`/events/${eventId}/tournaments`)
+      .set('Cookie', other.cookie)
+      .send(body)
+      .expect(403);
+    await request(http)
+      .post(`/events/${eventId}/tournaments`)
+      .set('Cookie', owner.cookie)
+      .send({ ...body, sportCode: 'curling' })
+      .expect(404);
+  });
+
+  it('the database allows exactly one owner per tournament', async () => {
+    const owner = await signIn(app, { sub: 'only-owner' });
+    const usurper = await signIn(app, { sub: 'usurper' });
+    const { id } = await createTournament(app, owner, 'kabaddi');
+    await expect(
+      prisma.membership.create({
+        data: { userId: usurper.userId, tournamentId: id, role: 'owner' },
+      }),
+    ).rejects.toThrow(/Unique constraint/);
+    // Other roles can coexist with the owner, including on the same person.
+    await prisma.membership.create({
+      data: { userId: usurper.userId, tournamentId: id, role: 'co_organizer' },
+    });
   });
 });
 
-describe('walking skeleton: sign in → profile → register → organizer reviews', () => {
+describe('registration on: register → organizer reviews', () => {
   it('runs end to end', async () => {
-    const player = await signIn(app, { sub: 'player-1' });
-    const me0 = await request(http).get('/me').set('Cookie', player.cookie).expect(200);
-    expect(me0.body.player).toBeNull();
+    const owner = await signIn(app, { sub: 'owner-1' });
+    const cricket = await createTournament(app, owner, 'cricket');
+    const football = await createTournament(app, owner, 'football');
 
+    const player = await signIn(app, { sub: 'player-1' });
     await request(http)
-      .post(`/tournaments/${cricketId}/registrations`)
+      .post(`/tournaments/${cricket.id}/registrations`)
       .set('Cookie', player.cookie)
       .expect(400);
     await request(http)
@@ -73,125 +133,153 @@ describe('walking skeleton: sign in → profile → register → organizer revie
       .expect(201);
     await request(http).post('/players').set('Cookie', player.cookie).send(profile).expect(409);
 
-    const list = await request(http).get('/tournaments').expect(200);
-    expect(list.body.map((t: { id: string }) => t.id)).toEqual(
-      expect.arrayContaining([cricketId, footballId]),
-    );
-
     const reg = await request(http)
-      .post(`/tournaments/${cricketId}/registrations`)
+      .post(`/tournaments/${cricket.id}/registrations`)
       .set('Cookie', player.cookie)
       .expect(201);
-    expect(reg.body.status).toBe('pending');
+    expect(reg.body).toMatchObject({
+      status: 'pending',
+      source: 'self_registered',
+      selfApproved: false,
+    });
     await request(http)
-      .post(`/tournaments/${cricketId}/registrations`)
+      .post(`/tournaments/${cricket.id}/registrations`)
       .set('Cookie', player.cookie)
       .expect(409);
-    await request(http)
-      .post(`/tournaments/${footballId}/registrations`)
+    const reg2 = await request(http)
+      .post(`/tournaments/${football.id}/registrations`)
       .set('Cookie', player.cookie)
       .expect(201);
 
-    // A player calling an organizer endpoint gets 403.
-    await request(http)
-      .get(`/tournaments/${cricketId}/registrations`)
-      .set('Cookie', player.cookie)
-      .expect(403);
-    await request(http)
-      .patch(`/registrations/${reg.body.id}`)
-      .set('Cookie', player.cookie)
-      .send({ status: 'approved' })
-      .expect(403);
-
-    // Bootstrap admin (SUPER_ADMIN_EMAILS in vitest config) reviews.
-    const admin = await signIn(app, { sub: 'admin-1', email: 'admin@example.com' });
     const queue = await request(http)
-      .get(`/tournaments/${cricketId}/registrations?status=pending`)
-      .set('Cookie', admin.cookie)
+      .get(`/tournaments/${cricket.id}/registrations?status=pending`)
+      .set('Cookie', owner.cookie)
       .expect(200);
     expect(queue.body.map((r: { player: { id: string } }) => r.player.id)).toContain(
       created.body.id,
     );
 
     await request(http)
-      .patch(`/registrations/${reg.body.id}`)
-      .set('Cookie', admin.cookie)
+      .patch(`/registrations/${reg2.body.id}`)
+      .set('Cookie', owner.cookie)
       .send({ status: 'rejected' })
       .expect(400);
     await request(http)
-      .patch(`/registrations/${reg.body.id}`)
-      .set('Cookie', admin.cookie)
+      .patch(`/registrations/${reg2.body.id}`)
+      .set('Cookie', owner.cookie)
       .send({ status: 'rejected', reason: 'Upload a clearer photo' })
+      .expect(200);
+    await request(http)
+      .patch(`/registrations/${reg.body.id}`)
+      .set('Cookie', owner.cookie)
+      .send({ status: 'approved' })
       .expect(200);
 
     const mine = await request(http)
       .get('/me/registrations')
       .set('Cookie', player.cookie)
       .expect(200);
-    expect(mine.body.find((r: { id: string }) => r.id === reg.body.id)).toMatchObject({
+    const status = Object.fromEntries(
+      mine.body.map((r: { id: string; status: string }) => [r.id, r]),
+    );
+    expect(status[reg.body.id]).toMatchObject({ status: 'approved' });
+    expect(status[reg2.body.id]).toMatchObject({
       status: 'rejected',
       reason: 'Upload a clearer photo',
     });
 
-    // Rejected players can resubmit; then the organizer approves.
+    // Approval makes them a member with role player.
+    const theirs = await request(http)
+      .get('/me/tournaments')
+      .set('Cookie', player.cookie)
+      .expect(200);
+    expect(theirs.body).toEqual([expect.objectContaining({ id: cricket.id, roles: ['player'] })]);
+
+    // Rejected players can resubmit.
     const again = await request(http)
-      .post(`/tournaments/${cricketId}/registrations`)
+      .post(`/tournaments/${football.id}/registrations`)
       .set('Cookie', player.cookie)
       .expect(201);
-    expect(again.body).toMatchObject({ id: reg.body.id, status: 'pending', reason: null });
-    await request(http)
-      .patch(`/registrations/${reg.body.id}`)
-      .set('Cookie', admin.cookie)
-      .send({ status: 'approved' })
-      .expect(200);
+    expect(again.body).toMatchObject({ id: reg2.body.id, status: 'pending', reason: null });
 
     const logs = await prisma.auditLog.findMany({
-      where: { entityId: reg.body.id },
+      where: { entity: 'Registration' },
       orderBy: { at: 'asc' },
     });
     expect(logs.map((l) => l.action)).toEqual(['registration.rejected', 'registration.approved']);
-    expect(logs[0]!.actorId).toBe(admin.userId);
+    expect(logs[0]!.actorId).toBe(owner.userId);
   });
 
-  it('scopes organizer rights to their own tournament', async () => {
-    const org = await signIn(app, { sub: 'organizer-1' });
-    await prisma.membership.create({
-      data: { userId: org.userId, tournamentId: footballId, role: 'organizer' },
-    });
-    await request(http)
-      .get(`/tournaments/${footballId}/registrations`)
-      .set('Cookie', org.cookie)
-      .expect(200);
-    await request(http)
-      .get(`/tournaments/${cricketId}/registrations`)
-      .set('Cookie', org.cookie)
-      .expect(403);
-  });
-
-  it('does not make unverified emails admins', async () => {
-    const fake = await signIn(app, {
-      sub: 'impostor',
-      email: 'admin@example.com',
-      emailVerified: false,
-    });
-    await request(http)
-      .get(`/tournaments/${cricketId}/registrations`)
-      .set('Cookie', fake.cookie)
-      .expect(403);
-  });
-
-  it('refuses registration when closed', async () => {
+  it('refuses registration when closed or when the registration module is off', async () => {
+    const owner = await signIn(app, { sub: 'owner-closed' });
+    const closed = await createTournament(app, owner, 'basketball', { open: false });
+    const off = await createTournament(app, owner, 'badminton', { modules: registrationOff });
     const p = await signIn(app, { sub: 'player-late' });
     await request(http).post('/players').set('Cookie', p.cookie).send(profile).expect(201);
-    await prisma.tournament.update({
-      where: { id: footballId },
-      data: { registrationOpen: false },
-    });
     await request(http)
-      .post(`/tournaments/${footballId}/registrations`)
+      .post(`/tournaments/${closed.id}/registrations`)
       .set('Cookie', p.cookie)
       .expect(400);
-    await prisma.tournament.update({ where: { id: footballId }, data: { registrationOpen: true } });
+    const res = await request(http)
+      .post(`/tournaments/${off.id}/registrations`)
+      .set('Cookie', p.cookie)
+      .expect(400);
+    expect(res.body.message).toMatch(/adds players directly/);
+    // Can't open registration while the module is off.
+    await request(http)
+      .patch(`/tournaments/${off.id}/registration`)
+      .set('Cookie', owner.cookie)
+      .send({ open: true })
+      .expect(400);
+  });
+});
+
+describe('owner who also plays', () => {
+  it('flags self-approval, shows it in the queue and audit log; co-organizer approval is not self', async () => {
+    const owner = await signIn(app, { sub: 'playing-owner' });
+    const { id } = await createTournament(app, owner, 'football');
+    await request(http).post('/players').set('Cookie', owner.cookie).send(profile).expect(201);
+    const reg = await request(http)
+      .post(`/tournaments/${id}/registrations`)
+      .set('Cookie', owner.cookie)
+      .expect(201);
+
+    await request(http)
+      .patch(`/registrations/${reg.body.id}`)
+      .set('Cookie', owner.cookie)
+      .send({ status: 'approved' })
+      .expect(200);
+    const queue = await request(http)
+      .get(`/tournaments/${id}/registrations`)
+      .set('Cookie', owner.cookie)
+      .expect(200);
+    expect(queue.body.find((r: { id: string }) => r.id === reg.body.id)).toMatchObject({
+      selfApproved: true,
+    });
+    const log = await prisma.auditLog.findFirstOrThrow({ where: { entityId: reg.body.id } });
+    expect(log).toMatchObject({ action: 'registration.self_approved', actorId: owner.userId });
+
+    const mine = await request(http).get('/me/tournaments').set('Cookie', owner.cookie).expect(200);
+    expect(mine.body.find((t: { id: string }) => t.id === id).roles.sort()).toEqual([
+      'owner',
+      'player',
+    ]);
+
+    // A co-organizer approving the owner's registration is not a self-approval.
+    const helper = await signIn(app, { sub: 'helper' });
+    await prisma.membership.create({
+      data: { userId: helper.userId, tournamentId: id, role: 'co_organizer' },
+    });
+    await request(http)
+      .patch(`/registrations/${reg.body.id}`)
+      .set('Cookie', helper.cookie)
+      .send({ status: 'approved' })
+      .expect(200);
+    expect(
+      await prisma.registration.findUniqueOrThrow({ where: { id: reg.body.id } }),
+    ).toMatchObject({
+      selfApproved: false,
+    });
   });
 });
 
@@ -230,5 +318,18 @@ describe('sessions', () => {
     expect(cookies).toHaveLength(2);
     for (const c of cookies) expect(c).toMatch(/HttpOnly/i);
     for (const c of cookies) expect(c).toMatch(/SameSite=Lax/i);
+  });
+
+  it('makes verified SUPER_ADMIN_EMAILS super admins, but never unverified ones', async () => {
+    const admin = await signIn(app, { sub: 'platform-admin', email: 'admin@example.com' });
+    const fake = await signIn(app, {
+      sub: 'impostor',
+      email: 'admin@example.com',
+      emailVerified: false,
+    });
+    const me = await request(http).get('/me').set('Cookie', admin.cookie).expect(200);
+    expect(me.body.user.isSuperAdmin).toBe(true);
+    const fakeMe = await request(http).get('/me').set('Cookie', fake.cookie).expect(200);
+    expect(fakeMe.body.user.isSuperAdmin).toBe(false);
   });
 });

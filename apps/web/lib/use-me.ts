@@ -26,6 +26,3 @@ export function useMe() {
   }, [reload]);
   return { me, reload };
 }
-
-export const isAdminOrOrganizer = (me: MeResponse) =>
-  me.roles.some((r) => r.role === 'super_admin' || r.role === 'organizer');

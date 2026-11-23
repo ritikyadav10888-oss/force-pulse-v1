@@ -2,17 +2,20 @@ import { createHmac, randomBytes } from 'node:crypto';
 import type { INestApplication } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
 import request from 'supertest';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { Test } from '@nestjs/testing';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { POLICY_VERSION } from '@force-pulse/shared';
 import { seed } from '../src/seed';
-import { bootApp, credentialFor, resetDb, signIn } from './helpers';
+import { bootApp, cookieHeader, createTournament, credentialFor, resetDb, signIn } from './helpers';
 
 // Needs DATABASE_URL. Wipes the database.
 const prisma = new PrismaClient();
 let app: INestApplication;
 let http: ReturnType<INestApplication['getHttpServer']>;
-let cricketId: string;
-let footballId: string;
+let ownerA: Awaited<ReturnType<typeof signIn>>;
+let ownerB: Awaited<ReturnType<typeof signIn>>;
+let tA: string; // owned by ownerA
+let tB: string; // owned by ownerB
 
 const profile = { displayName: 'Ravi Kumar', dob: '1998-01-20', gender: 'male', city: 'Indore' };
 
@@ -21,9 +24,10 @@ beforeAll(async () => {
   await seed(prisma);
   app = await bootApp();
   http = app.getHttpServer();
-  const ts = await prisma.tournament.findMany({ include: { sport: true } });
-  cricketId = ts.find((t) => t.sport.code === 'cricket')!.id;
-  footballId = ts.find((t) => t.sport.code === 'football')!.id;
+  ownerA = await signIn(app, { sub: 'owner-a' });
+  ownerB = await signIn(app, { sub: 'owner-b' });
+  tA = (await createTournament(app, ownerA, 'cricket')).id;
+  tB = (await createTournament(app, ownerB, 'football')).id;
 });
 
 afterAll(async () => {
@@ -70,6 +74,8 @@ describe('consent', () => {
 });
 
 describe('role checks (403)', () => {
+  const modules = { registration: true, auction: true, scoring: false, fantasy: false };
+
   it('stops players editing someone else’s profile', async () => {
     const a = await signIn(app, { sub: 'owner' });
     const b = await signIn(app, { sub: 'intruder' });
@@ -90,46 +96,157 @@ describe('role checks (403)', () => {
       .expect(200);
   });
 
-  it('keeps organizers to their own tournament for reviews too', async () => {
-    const p = await signIn(app, { sub: 'reg-player' });
+  it('a player calling organizer endpoints gets 403', async () => {
+    const p = await signIn(app, { sub: 'plain-player' });
     await request(http).post('/players').set('Cookie', p.cookie).send(profile).expect(201);
     const reg = await request(http)
-      .post(`/tournaments/${cricketId}/registrations`)
+      .post(`/tournaments/${tA}/registrations`)
       .set('Cookie', p.cookie)
       .expect(201);
-
-    const org = await signIn(app, { sub: 'football-org' });
-    await prisma.membership.create({
-      data: { userId: org.userId, tournamentId: footballId, role: 'organizer' },
-    });
+    await request(http).get(`/tournaments/${tA}/registrations`).set('Cookie', p.cookie).expect(403);
     await request(http)
       .patch(`/registrations/${reg.body.id}`)
-      .set('Cookie', org.cookie)
+      .set('Cookie', p.cookie)
       .send({ status: 'approved' })
       .expect(403);
-
-    // Non-organizer roles in the right tournament are not enough either.
-    const scorer = await signIn(app, { sub: 'cricket-scorer' });
-    await prisma.membership.create({
-      data: { userId: scorer.userId, tournamentId: cricketId, role: 'scorer' },
-    });
     await request(http)
-      .get(`/tournaments/${cricketId}/registrations`)
-      .set('Cookie', scorer.cookie)
+      .patch(`/tournaments/${tA}/registration`)
+      .set('Cookie', p.cookie)
+      .send({ open: false })
+      .expect(403);
+    await request(http)
+      .patch(`/tournaments/${tA}/modules`)
+      .set('Cookie', p.cookie)
+      .send(modules)
       .expect(403);
   });
 
-  it('returns 404 for unknown registrations and 400 for malformed ids', async () => {
-    const admin = await signIn(app, { sub: 'admin-2', email: 'admin@example.com' });
+  it("owner A gets 403 on owner B's tournament", async () => {
+    const p = await signIn(app, { sub: 'b-player' });
+    await request(http).post('/players').set('Cookie', p.cookie).send(profile).expect(201);
+    const reg = await request(http)
+      .post(`/tournaments/${tB}/registrations`)
+      .set('Cookie', p.cookie)
+      .expect(201);
     await request(http)
-      .patch('/registrations/00000000-0000-4000-8000-000000000000')
+      .get(`/tournaments/${tB}/registrations`)
+      .set('Cookie', ownerA.cookie)
+      .expect(403);
+    await request(http)
+      .patch(`/registrations/${reg.body.id}`)
+      .set('Cookie', ownerA.cookie)
+      .send({ status: 'approved' })
+      .expect(403);
+    await request(http)
+      .patch(`/tournaments/${tB}/registration`)
+      .set('Cookie', ownerA.cookie)
+      .send({ open: false })
+      .expect(403);
+    await request(http)
+      .patch(`/tournaments/${tB}/modules`)
+      .set('Cookie', ownerA.cookie)
+      .send(modules)
+      .expect(403);
+  });
+
+  it('a co-organizer runs players but gets 403 on owner-only actions', async () => {
+    const co = await signIn(app, { sub: 'co-a' });
+    await prisma.membership.create({
+      data: {
+        userId: co.userId,
+        tournamentId: tA,
+        role: 'co_organizer',
+        invitedById: ownerA.userId,
+      },
+    });
+    await request(http)
+      .get(`/tournaments/${tA}/registrations`)
+      .set('Cookie', co.cookie)
+      .expect(200);
+    await request(http)
+      .patch(`/tournaments/${tA}/registration`)
+      .set('Cookie', co.cookie)
+      .send({ open: true })
+      .expect(200);
+    await request(http)
+      .patch(`/tournaments/${tA}/modules`)
+      .set('Cookie', co.cookie)
+      .send(modules)
+      .expect(403);
+    // The owner can.
+    const res = await request(http)
+      .patch(`/tournaments/${tA}/modules`)
+      .set('Cookie', ownerA.cookie)
+      .send(modules)
+      .expect(200);
+    expect(res.body.modulesJson).toEqual(modules);
+    // Co-organizer rights don't carry over to another tournament.
+    await request(http)
+      .get(`/tournaments/${tB}/registrations`)
+      .set('Cookie', co.cookie)
+      .expect(403);
+  });
+
+  it('super admins run the platform, not tournaments', async () => {
+    const admin = await signIn(app, { sub: 'super', email: 'admin@example.com' });
+    await request(http)
+      .get(`/tournaments/${tA}/registrations`)
       .set('Cookie', admin.cookie)
+      .expect(403);
+  });
+
+  it('returns 404 for unknown ids and 400 for malformed ones', async () => {
+    const unknown = '00000000-0000-4000-8000-000000000000';
+    await request(http)
+      .patch(`/registrations/${unknown}`)
+      .set('Cookie', ownerA.cookie)
       .send({ status: 'approved' })
       .expect(404);
     await request(http)
+      .get(`/tournaments/${unknown}/registrations`)
+      .set('Cookie', ownerA.cookie)
+      .expect(404);
+    await request(http)
       .get('/tournaments/not-a-uuid/registrations')
-      .set('Cookie', admin.cookie)
+      .set('Cookie', ownerA.cookie)
       .expect(400);
+  });
+});
+
+describe('test-only sign-in', () => {
+  it('signs in as a seeded user in test mode', async () => {
+    const seeded = await prisma.user.create({
+      data: { googleSub: 'seed:x', email: 'seeded@demo.test', name: 'Seeded' },
+    });
+    const res = await request(http)
+      .post('/auth/test-login')
+      .send({ email: 'seeded@demo.test' })
+      .expect(200);
+    expect(res.body.userId).toBe(seeded.id);
+    const me = await request(http).get('/me').set('Cookie', cookieHeader(res)).expect(200);
+    expect(me.body.user.email).toBe('seeded@demo.test');
+    await request(http).post('/auth/test-login').send({ email: 'nobody@demo.test' }).expect(404);
+  });
+
+  it('does not exist in production mode', async () => {
+    const previous = process.env.NODE_ENV;
+    process.env.NODE_ENV = 'production';
+    vi.resetModules(); // re-evaluate module registration with the production env
+    try {
+      const { AppModule } = await import('../src/app.module.js');
+      const prod = (
+        await Test.createTestingModule({ imports: [AppModule] }).compile()
+      ).createNestApplication();
+      await prod.init();
+      await request(prod.getHttpServer())
+        .post('/auth/test-login')
+        .send({ email: 'seeded@demo.test' })
+        .expect(404);
+      await prod.close();
+    } finally {
+      process.env.NODE_ENV = previous;
+      vi.resetModules();
+    }
   });
 });
 

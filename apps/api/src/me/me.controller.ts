@@ -5,6 +5,9 @@ import {
   POLICY_VERSION,
   type ConsentScope,
   type MeResponse,
+  type Modules,
+  type MyTournament,
+  type Role,
 } from '@force-pulse/shared';
 import { type AuthUser, CurrentUser } from '../auth/auth.guard';
 import { consentedScopes, SkipConsent } from '../auth/consent';
@@ -31,7 +34,13 @@ export class MeController {
     const player = user.player && !user.player.deletedAt ? user.player : null;
     const scopes = await consentedScopes(this.prisma, id);
     return {
-      user: { id: user.id, email: user.email, name: user.name, avatarUrl: user.avatarUrl },
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        avatarUrl: user.avatarUrl,
+        isSuperAdmin: user.isSuperAdmin,
+      },
       roles: user.memberships,
       player: player && { id: player.id, displayName: player.displayName },
       consent: { policyVersion: POLICY_VERSION, scopes, required: !scopes.includes('data_use') },
@@ -57,6 +66,45 @@ export class MeController {
       });
     }
     return { policyVersion: POLICY_VERSION, scopes: [...have, ...add] };
+  }
+
+  @Get('tournaments')
+  @ApiOkResponse({ description: 'Every tournament the user is in, with their role(s) in each' })
+  async tournaments(@CurrentUser() { id }: AuthUser): Promise<MyTournament[]> {
+    const rows = await this.prisma.membership.findMany({
+      where: { userId: id },
+      select: {
+        role: true,
+        tournament: {
+          select: {
+            id: true,
+            name: true,
+            category: true,
+            registrationOpen: true,
+            modulesJson: true,
+            sport: { select: { code: true, name: true } },
+            event: { select: { id: true, name: true } },
+          },
+        },
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+    const byId = new Map<string, MyTournament>();
+    for (const { role, tournament: t } of rows) {
+      const entry = byId.get(t.id) ?? {
+        id: t.id,
+        name: t.name,
+        category: t.category,
+        registrationOpen: t.registrationOpen,
+        modules: t.modulesJson as Modules,
+        sport: t.sport,
+        event: t.event,
+        roles: [] as Role[],
+      };
+      entry.roles.push(role);
+      byId.set(t.id, entry);
+    }
+    return [...byId.values()];
   }
 
   @Get('registrations')

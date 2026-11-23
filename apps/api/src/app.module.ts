@@ -8,6 +8,7 @@ import { MeController } from './me/me.controller';
 import { PlayersController } from './players/players.controller';
 import { PrismaModule } from './prisma/prisma.module';
 import { SportsController } from './sports/sports.controller';
+import { EventsController } from './tournaments/events.controller';
 import { RegistrationsService } from './tournaments/registrations.service';
 import { TournamentsController } from './tournaments/tournaments.controller';
 
@@ -31,6 +32,7 @@ import { TournamentsController } from './tournaments/tournaments.controller';
     SportsController,
     PlayersController,
     TournamentsController,
+    EventsController,
   ],
   // useClass (Sentry's documented setup): Nest property-injects HttpAdapterHost into the base filter.
   // The startup "no decorator metadata" warning for arg 0 is harmless; a factory breaks HttpException handling.
